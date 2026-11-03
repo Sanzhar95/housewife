@@ -12,6 +12,11 @@ const strip = v => {
   if (o && Array.isArray(o.log)) o.log = o.log.filter(e => EXTRA_LOG.indexOf(e.action) < 0);
   return o;
 };
+// Окно «последние 100 записей» с учётом метрик короче: сравниваем общую свежую часть журнала.
+function alignLogs(a, b) {
+  const n = Math.min(a.log.length, b.log.length);
+  a.log = a.log.slice(0, n); b.log = b.log.slice(0, n);
+}
 const noNotice = v => { const o = strip(v); delete o.notice; return o; };
 
 function makePair(sheets, opts) {
@@ -37,11 +42,12 @@ function makePair(sheets, opts) {
         S = after;
         return { error: o.error };
       }
-      assert.deepStrictEqual(strip(l.state), o.state, label + ': состояние должно совпасть');
+      const ls = strip(l.state), os = strip(o.state); alignLogs(ls, os);
+      assert.deepStrictEqual(ls, os, label + ': состояние должно совпасть');
       S = l.state;
       return { state: l.state };
     },
-    check() { assert.deepStrictEqual(noNotice(S), noNotice(oracle.getState()), 'итоговое состояние'); }
+    check() { const a = noNotice(S), b = noNotice(oracle.getState()); alignLogs(a, b); assert.deepStrictEqual(a, b, 'итоговое состояние'); }
   };
   return pair;
 }
