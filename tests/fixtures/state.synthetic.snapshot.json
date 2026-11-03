@@ -1,0 +1,419 @@
+{
+ "products": [
+  {
+   "id": "pr000001",
+   "name": "Рис",
+   "unit": "КГ",
+   "stock": 2,
+   "min": 0.5
+  },
+  {
+   "id": "pr000002",
+   "name": "Курица",
+   "unit": "КГ",
+   "stock": 1.5,
+   "min": 0.5
+  },
+  {
+   "id": "pr000003",
+   "name": "Картофель",
+   "unit": "КГ",
+   "stock": 3,
+   "min": 1
+  },
+  {
+   "id": "pr000004",
+   "name": "Молоко",
+   "unit": "Л",
+   "stock": 1,
+   "min": 0.5
+  },
+  {
+   "id": "pr000005",
+   "name": "Яйца",
+   "unit": "ШТ",
+   "stock": 10,
+   "min": 4
+  },
+  {
+   "id": "pr000006",
+   "name": "Масло подсолнечное",
+   "unit": "МЛ",
+   "stock": 500,
+   "min": 100
+  },
+  {
+   "id": "pr000007",
+   "name": "Соль",
+   "unit": "Г",
+   "stock": 800,
+   "min": 100
+  },
+  {
+   "id": "pr000008",
+   "name": "Морковь",
+   "unit": "КГ",
+   "stock": 0,
+   "min": 0.3
+  },
+  {
+   "id": "pr000009",
+   "name": "Лук",
+   "unit": "КГ",
+   "stock": 0.4,
+   "min": 0.5
+  },
+  {
+   "id": "pr0000a0",
+   "name": "Гречка",
+   "unit": "Г",
+   "stock": 900,
+   "min": 200
+  },
+  {
+   "id": "pr0000a1",
+   "name": "Огурцы",
+   "unit": "КГ",
+   "stock": 1,
+   "min": 0.3
+  },
+  {
+   "id": "pr0000a2",
+   "name": "Фарш",
+   "unit": "КГ",
+   "stock": 0.2,
+   "min": 0.3
+  }
+ ],
+ "dishes": [
+  {
+   "id": "ds000001",
+   "name": "Плов",
+   "note": "с курицей",
+   "type": "main",
+   "meals": [
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": false,
+   "portions": 0,
+   "times": 2
+  },
+  {
+   "id": "ds000002",
+   "name": "Курица с картошкой",
+   "note": "",
+   "type": "main",
+   "meals": [
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": true,
+   "portions": 4,
+   "times": 1
+  },
+  {
+   "id": "ds000003",
+   "name": "Омлет",
+   "note": "",
+   "type": "main",
+   "meals": [
+    "Завтрак"
+   ],
+   "withSide": false,
+   "portions": 2,
+   "times": 1
+  },
+  {
+   "id": "ds000004",
+   "name": "Котлеты",
+   "note": "\"домашние\"",
+   "type": "main",
+   "meals": [
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": true,
+   "portions": 0,
+   "times": 3
+  },
+  {
+   "id": "ds000005",
+   "name": "Гречка",
+   "note": "",
+   "type": "side",
+   "meals": [
+    "Завтрак",
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": false,
+   "portions": 0,
+   "times": 1
+  },
+  {
+   "id": "ds000006",
+   "name": "Рис отварной",
+   "note": "",
+   "type": "side",
+   "meals": [
+    "Завтрак",
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": false,
+   "portions": 0,
+   "times": 1
+  },
+  {
+   "id": "ds000007",
+   "name": "Салат из огурцов",
+   "note": "",
+   "type": "extra",
+   "meals": [
+    "Завтрак",
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": false,
+   "portions": 0,
+   "times": 1
+  },
+  {
+   "id": "ds000008",
+   "name": "Морковный салат",
+   "note": "",
+   "type": "extra",
+   "meals": [
+    "Завтрак",
+    "Обед",
+    "Ужин"
+   ],
+   "withSide": false,
+   "portions": 0,
+   "times": 1
+  }
+ ],
+ "ing": [
+  {
+   "dish": "ds000001",
+   "product": "pr0000001",
+   "qty": 0.4,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000001",
+   "product": "pr0000002",
+   "qty": 0.5,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000001",
+   "product": "pr0000009",
+   "qty": 0.2,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000002",
+   "product": "pr0000002",
+   "qty": 0.8,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000002",
+   "product": "pr0000003",
+   "qty": 1,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000002",
+   "product": "pr0000006",
+   "qty": 30,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000003",
+   "product": "pr0000005",
+   "qty": 4,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000003",
+   "product": "pr0000004",
+   "qty": 0.2,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000004",
+   "product": "pr0000a2",
+   "qty": 0.5,
+   "unit": "КГ"
+  },
+  {
+   "dish": "ds000004",
+   "product": "pr0000009",
+   "qty": 0.2,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000004",
+   "product": "pr0000005",
+   "qty": 1,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000005",
+   "product": "pr0000a0",
+   "qty": 300,
+   "unit": "Г"
+  },
+  {
+   "dish": "ds000006",
+   "product": "pr0000001",
+   "qty": 0.3,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000007",
+   "product": "pr0000a1",
+   "qty": 0.4,
+   "unit": "КГ"
+  },
+  {
+   "dish": "ds000007",
+   "product": "pr0000006",
+   "qty": 20,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000007",
+   "product": "pr0000007",
+   "qty": 3,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000008",
+   "product": "pr0000008",
+   "qty": 0.3,
+   "unit": "ШТ"
+  },
+  {
+   "dish": "ds000008",
+   "product": "pr0000006",
+   "qty": 20,
+   "unit": "ШТ"
+  }
+ ],
+ "plan": [
+  {
+   "id": "pl000001",
+   "day": 1,
+   "meal": "Ужин",
+   "kind": "main",
+   "dish": "ds000001",
+   "side": "ds000006",
+   "done": true,
+   "date": "2026-11-02 19:30",
+   "left": false,
+   "portions": 0,
+   "from": ""
+  },
+  {
+   "id": "pl000002",
+   "day": 2,
+   "meal": "Обед",
+   "kind": "main",
+   "dish": "ds000001",
+   "side": "ds000006",
+   "done": false,
+   "date": "",
+   "left": true,
+   "portions": 0,
+   "from": "pl000001"
+  },
+  {
+   "id": "35409132",
+   "day": 2,
+   "meal": "Ужин",
+   "kind": "main",
+   "dish": "ds000002",
+   "side": "ds000005",
+   "done": false,
+   "date": "",
+   "left": false,
+   "portions": 0,
+   "from": ""
+  },
+  {
+   "id": "pl000004",
+   "day": 2,
+   "meal": "Ужин",
+   "kind": "extra",
+   "dish": "ds000007",
+   "side": "",
+   "done": false,
+   "date": "",
+   "left": false,
+   "portions": 0,
+   "from": ""
+  },
+  {
+   "id": "pl000005",
+   "day": 3,
+   "meal": "Завтрак",
+   "kind": "main",
+   "dish": "ds000003",
+   "side": "",
+   "done": false,
+   "date": "",
+   "left": false,
+   "portions": 2,
+   "from": ""
+  }
+ ],
+ "settings": {
+  "email": "",
+  "weekStart": "2026-11-02",
+  "portions": 0
+ },
+ "log": [
+  {
+   "when": "2026-11-03 09:00",
+   "action": "Приход",
+   "obj": "Молоко",
+   "details": "+1 л → 1 л, 450 ₸"
+  },
+  {
+   "when": "2026-11-02 19:30",
+   "action": "Приготовлено",
+   "obj": "Ужин: Плов + Рис отварной",
+   "details": "Курица −500 г"
+  }
+ ],
+ "purchases": [
+  {
+   "when": "2026-11-01 18:00",
+   "product": "pr0000004",
+   "qty": 1,
+   "unit": "Л",
+   "total": 450,
+   "price": 450
+  },
+  {
+   "when": "2026-11-01 18:00",
+   "product": "pr0000002",
+   "qty": 1.5,
+   "unit": "КГ",
+   "total": 3000,
+   "price": 2000
+  },
+  {
+   "when": "2026-10-20 10:00",
+   "product": "zzzzzzzz",
+   "qty": 2,
+   "unit": "ШТ",
+   "total": null,
+   "price": null
+  }
+ ]
+}
