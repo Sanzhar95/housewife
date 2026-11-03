@@ -1,0 +1,7 @@
+.env
+public/config.js
+*.xlsx
+.DS_Store
+*.zip
+node_modules/
+.superpowers/

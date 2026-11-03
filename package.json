@@ -1,0 +1,9 @@
+{
+  "name": "domashnyaya-kuhnya",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "test": "node --test tests/",
+    "build": "node build.js"
+  }
+}

@@ -35,7 +35,7 @@
 
 ---
 
-### Задача 1: Каркас репозитория
+### Task 1: Каркас репозитория
 
 **Files:**
 - Create: `.gitignore`, `package.json`, `tests/.gitkeep`, `apps-script/appsscript.json`
@@ -56,7 +56,7 @@
 
 ---
 
-### Задача 2: Спайк R1, R2, R3, R6 на пустом проекте
+### Task 2: Спайк R1, R2, R3, R6 на пустом проекте
 
 **Files:**
 - Create: `supabase/spike/spike.sql`, `tests/spike/spike.js` (черновик, остаётся в репозитории как справка), `docs/superpowers/plans/spike-notes.md`
@@ -76,7 +76,7 @@
 
 ---
 
-### Задача 3: Схема, RLS и функции базы
+### Task 3: Схема, RLS и функции базы
 
 **Files:**
 - Create: `supabase/migrations/001_init.sql`, `tests/rls.test.js`, `tests/helpers/db.js`
@@ -99,7 +99,7 @@
 
 ---
 
-### Задача 4: Сравнительный стенд («оракул») и фикстуры
+### Task 4: Сравнительный стенд («оракул») и фикстуры
 
 **Files:**
 - Create: `tests/oracle/sheets-mock.js`, `tests/oracle/gs-runner.js`, `tests/fixtures/sheets.synthetic.json`, `tools/xlsx-to-sheets.js`, `tests/oracle/oracle.smoke.test.js`
@@ -120,7 +120,7 @@
 
 ---
 
-### Задача 5: `logic.js` — основа
+### Task 5: `logic.js` — основа
 
 **Files:**
 - Create: `public/logic.js`, `tests/logic/core.test.js`
@@ -142,7 +142,7 @@
 
 ---
 
-### Задача 6: `logic.js` — склад, продукты, блюда, состав, настройки, импорт
+### Task 6: `logic.js` — склад, продукты, блюда, состав, настройки, импорт
 
 **Files:**
 - Modify: `public/logic.js`
@@ -160,7 +160,7 @@
 
 ---
 
-### Задача 7: `logic.js` — меню (генератор, замены, гарниры)
+### Task 7: `logic.js` — меню (генератор, замены, гарниры)
 
 **Files:**
 - Modify: `public/logic.js`
@@ -177,7 +177,7 @@
 
 ---
 
-### Задача 8: `logic.js` — готовка, остатки, отмена
+### Task 8: `logic.js` — готовка, остатки, отмена
 
 **Files:**
 - Modify: `public/logic.js`
@@ -194,7 +194,7 @@
 
 ---
 
-### Задача 9: `db.js` — разница, запись, очередь, конфликты
+### Task 9: `db.js` — разница, запись, очередь, конфликты
 
 **Files:**
 - Create: `public/db.js`, `tests/db/diff.test.js`, `tests/db/queue.test.js`
@@ -219,7 +219,7 @@
 
 ---
 
-### Задача 10: `auth.js` и `api.js`
+### Task 10: `auth.js` и `api.js`
 
 **Files:**
 - Create: `public/auth.js`, `public/api.js` (заменить файл этапа 1), `public/vendor/supabase.js` (из `node_modules/@supabase/supabase-js/dist/umd/supabase.js`, версия в имени комментария), `tests/api/api.test.js`
@@ -239,7 +239,7 @@
 
 ---
 
-### Задача 11: `public/index.html` — перенос клиента, вход и настройки
+### Task 11: `public/index.html` — перенос клиента, вход и настройки
 
 **Files:**
 - Create: `public/index.html` (копия `legacy/Index.html` с правками ниже; заменить placeholder этапа 1)
@@ -259,7 +259,7 @@
 
 ---
 
-### Задача 12: Общие расчёты клиента — тест совпадения, затем замена; исправление «30 дней»
+### Task 12: Общие расчёты клиента — тест совпадения, затем замена; исправление «30 дней»
 
 **Files:**
 - Modify: `public/logic.js` (экспорт `Logic.calc = {needMap, itemNeed, weekNeed, shoppingList, dishP, isLow, r3}`), `public/index.html` (стр. ~489–502, 508, 576, 834–868, 1832)
@@ -277,7 +277,7 @@
 
 ---
 
-### Задача 13: Excel и «Скачать копию»
+### Task 13: Excel и «Скачать копию»
 
 **Files:**
 - Create: `public/xlsx-export.js`, `public/vendor/exceljs.min.js`, `tests/ui/xlsx-export.test.js`
@@ -293,7 +293,7 @@
 
 ---
 
-### Задача 14: Service worker, сборка, Netlify
+### Task 14: Service worker, сборка, Netlify
 
 **Files:**
 - Modify: `public/sw.js` (новый номер кэша; оболочка: `index.html, logic.js, db.js, auth.js, api.js, xlsx-export.js, vendor/*, manifest.json, icons`; запросы к `*.supabase.co` не кэшировать), `build.js` (читает `SUPABASE_URL`, `SUPABASE_ANON_KEY` из `.env`/окружения, падает с понятной ошибкой, если нет), `public/manifest.json` (проверить `start_url`, `display: standalone`)
@@ -306,7 +306,7 @@
 
 ---
 
-### Задача 15: `tools/migrate.js` и сверка
+### Task 15: `tools/migrate.js` и сверка
 
 **Files:**
 - Create: `tools/migrate.js`, `tools/reconcile.js`, `tests/migrate.test.js`
@@ -323,7 +323,7 @@
 
 ---
 
-### Задача 16: Замеры, UI-проверка и журнал для метрик
+### Task 16: Замеры, UI-проверка и журнал для метрик
 
 **Files:**
 - Create: `tests/ui/flow.test.js` (Playwright, 390px: вход → меню → «Готовить» → перезагрузка), `docs/superpowers/plans/perf-notes.md`
@@ -339,7 +339,7 @@
 
 ---
 
-### Задача 17: Репетиция, iPhone, переключение
+### Task 17: Репетиция, iPhone, переключение
 
 **Files:**
 - Create: `docs/superpowers/plans/iphone-checklist.md`
