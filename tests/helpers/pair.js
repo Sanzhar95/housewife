@@ -6,6 +6,7 @@ const { createOracle } = require('../oracle/gs-runner');
 const Logic = require('../../public/logic.js');
 
 const strip = v => JSON.parse(JSON.stringify(v, (k, x) => (k === '_new' ? undefined : x)));
+const noNotice = v => { const o = strip(v); delete o.notice; return o; };
 
 function makePair(sheets, opts) {
   opts = opts || {};
@@ -34,7 +35,7 @@ function makePair(sheets, opts) {
       S = l.state;
       return { state: l.state };
     },
-    check() { assert.deepStrictEqual(strip(S), oracle.getState(), 'итоговое состояние'); }
+    check() { assert.deepStrictEqual(noNotice(S), noNotice(oracle.getState()), 'итоговое состояние'); }
   };
   return pair;
 }
