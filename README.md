@@ -104,3 +104,9 @@ Workers & Pages → Create → Pages → Connect to Git → выберите р�
 ## Забытый пароль
 
 Заполняется после проверки в Supabase (план, Task 2).
+
+## База: применение и проверка
+1. Supabase → SQL Editor → вставить `supabase/migrations/001_init.sql` целиком → Run (можно повторно, ничего не сломается).
+2. Первая семья: в SQL Editor выполнить `select public.admin_new_family_invite('Наша семья');` — вернёт токен. Ссылка: `<адрес сайта>/#/join/<токен>` (действует 7 дней, одноразовая).
+3. Проверка защиты: `SUPABASE_DB_URL=… node --test tests/rls.test.js` (нужен установленный `psql`). Тесты создают только семьи `TEST-…` и пользователей `@dk-test.invalid` и удаляют их за собой.
+4. Локально без Supabase: любой PostgreSQL 15+, сначала `tests/helpers/supabase-stub.sql` (имитация ролей и `auth`), затем миграция.
