@@ -197,51 +197,51 @@
  "ing": [
   {
    "dish": "ds000001",
-   "product": "pr0000001",
+   "product": "pr000001",
    "qty": 0.4,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000001",
-   "product": "pr0000002",
+   "product": "pr000002",
    "qty": 0.5,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000001",
-   "product": "pr0000009",
+   "product": "pr000009",
    "qty": 0.2,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000002",
-   "product": "pr0000002",
+   "product": "pr000002",
    "qty": 0.8,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000002",
-   "product": "pr0000003",
+   "product": "pr000003",
    "qty": 1,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000002",
-   "product": "pr0000006",
+   "product": "pr000006",
    "qty": 30,
-   "unit": "ШТ"
+   "unit": "МЛ"
   },
   {
    "dish": "ds000003",
-   "product": "pr0000005",
+   "product": "pr000005",
    "qty": 4,
    "unit": "ШТ"
   },
   {
    "dish": "ds000003",
-   "product": "pr0000004",
+   "product": "pr000004",
    "qty": 0.2,
-   "unit": "ШТ"
+   "unit": "Л"
   },
   {
    "dish": "ds000004",
@@ -251,13 +251,13 @@
   },
   {
    "dish": "ds000004",
-   "product": "pr0000009",
+   "product": "pr000009",
    "qty": 0.2,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000004",
-   "product": "pr0000005",
+   "product": "pr000005",
    "qty": 1,
    "unit": "ШТ"
   },
@@ -269,9 +269,9 @@
   },
   {
    "dish": "ds000006",
-   "product": "pr0000001",
+   "product": "pr000001",
    "qty": 0.3,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000007",
@@ -281,27 +281,27 @@
   },
   {
    "dish": "ds000007",
-   "product": "pr0000006",
+   "product": "pr000006",
    "qty": 20,
-   "unit": "ШТ"
+   "unit": "МЛ"
   },
   {
    "dish": "ds000007",
-   "product": "pr0000007",
+   "product": "pr000007",
    "qty": 3,
-   "unit": "ШТ"
+   "unit": "Г"
   },
   {
    "dish": "ds000008",
-   "product": "pr0000008",
+   "product": "pr000008",
    "qty": 0.3,
-   "unit": "ШТ"
+   "unit": "КГ"
   },
   {
    "dish": "ds000008",
-   "product": "pr0000006",
+   "product": "pr000006",
    "qty": 20,
-   "unit": "ШТ"
+   "unit": "МЛ"
   }
  ],
  "plan": [
@@ -393,7 +393,7 @@
  "purchases": [
   {
    "when": "2026-11-01 18:00",
-   "product": "pr0000004",
+   "product": "pr000004",
    "qty": 1,
    "unit": "Л",
    "total": 450,
@@ -401,7 +401,7 @@
   },
   {
    "when": "2026-11-01 18:00",
-   "product": "pr0000002",
+   "product": "pr000002",
    "qty": 1.5,
    "unit": "КГ",
    "total": 3000,
