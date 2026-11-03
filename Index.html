@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<base target="_top">
+<title>Домашняя кухня</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f7f5fc; --surface:#ffffff; --surface-2:#f2eff9; --ink:#2a2338; --muted:#746c88; --line:#e8e3f2;
+  --accent:#6a55d8; --accent-ink:#ffffff; --accent-soft:#ece8fc; --accent-deep:#4a38b0;
+  --ok:#23825a; --ok-soft:#ddf4e8; --warn:#935d00; --warn-soft:#fff0c9; --bad:#cf3350; --bad-soft:#fde3e8;
+  --pink-soft:#ffe7ee; --mint-soft:#e1f6ee;
+  --radius:20px;
+  --shadow:0 1px 2px rgba(60,40,120,.06),0 6px 20px rgba(60,40,120,.07);
+  --font:"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --hand:"Caveat", "Segoe Script", cursive;
+  --nav-h:0px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+#busy{position:fixed;top:0;left:0;right:0;height:4px;background:var(--accent);transform:scaleX(0);transform-origin:left;opacity:0;transition:opacity .2s;z-index:80}
+body.busy #busy{opacity:1;animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{transform:scaleX(.05)}60%{transform:scaleX(.8)}100%{transform:scaleX(1);opacity:.2}}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} body.busy #busy{transform:scaleX(1)} }
+
+.wrap{max-width:1120px;margin:0 auto;padding:0 18px}
+
+/* Шапка и навигация */
+header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.top-row{display:flex;align-items:center;gap:8px;padding:12px 0}
+.brand{font-size:22px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.logo{width:40px;height:40px;border-radius:14px;background:var(--pink-soft);display:grid;place-items:center;font-size:22px;flex:none}
+.hbtn{border:0;background:var(--surface-2);border-radius:99px;height:40px;padding:0 14px;display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer}
+.hbtn:hover,.hbtn.on{background:var(--accent-soft)}
+nav{display:flex;gap:6px;padding-bottom:12px}
+.tab{border:0;background:var(--surface-2);padding:9px 16px;border-radius:99px;color:var(--muted);cursor:pointer;font-weight:700;white-space:nowrap;display:flex;gap:8px;align-items:center;transition:background .15s,color .15s}
+.tab:hover{color:var(--ink)}
+.tab.on{background:var(--accent);color:var(--accent-ink)}
+.tab .ico{font-size:17px;line-height:1}
+
+#banner{background:var(--warn-soft);color:var(--warn);border-bottom:1px solid #f3dd9c}
+#banner .wrap{display:flex;gap:10px;align-items:center;padding-top:10px;padding-bottom:10px}
+#banner .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+main{padding:22px 0 60px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .grow{flex:1;min-width:200px}
+h2{font-size:26px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+h3{font-size:18px;font-weight:800;letter-spacing:-.005em}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.check{display:flex;gap:9px;align-items:center;cursor:pointer;color:var(--muted);font-weight:700;min-height:40px}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+
+/* Кнопки и поля */
+.btn{border:0;background:var(--surface-2);color:var(--ink);border-radius:99px;padding:10px 18px;cursor:pointer;font-weight:700;transition:transform .12s,background .15s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px}
+.btn:hover:not(:disabled){background:var(--accent-soft)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 4px 14px rgba(106,85,216,.28)}
+.btn.primary:hover:not(:disabled){background:var(--accent-deep)}
+.btn.ghost{background:transparent}
+.btn.ghost:hover:not(:disabled){background:var(--surface-2)}
+.btn.danger{color:var(--bad)}
+.btn.danger:hover:not(:disabled){background:var(--bad-soft)}
+.btn.sm{padding:7px 14px;font-size:14px;min-height:38px}
+.btn.wide{width:100%}
+.icon-act{border:0;background:transparent;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:17px;flex:none}
+.icon-act:hover{background:var(--surface-2)}
+input[type=text],input[type=number],input[type=email],select{width:100%;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:11px 14px;font-size:16px;min-height:48px}
+input:focus,select:focus{border-color:var(--accent);outline:none}
+input[type=search]{background:var(--surface);border:2px solid var(--line);border-radius:99px;padding:10px 18px;min-width:230px;font-size:16px;min-height:44px}
+input[type=search]:focus{border-color:var(--accent);outline:none}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:3px 11px;border-radius:99px;background:var(--surface-2);color:var(--muted);width:fit-content}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.scroller{display:flex;gap:8px;overflow-x:auto;margin:0 -18px 16px;padding:2px 18px 4px;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.fchip{border:2px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 15px;font-weight:700;cursor:pointer;color:var(--muted);white-space:nowrap;min-height:40px}
+.fchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.actions-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+
+/* Сводка */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
+.stat .si{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
+.stat b{font-size:22px;font-weight:800;line-height:1.1;display:block}
+.stat span.l{font-size:13px;color:var(--muted);font-weight:600}
+.si.a{background:var(--mint-soft)}.si.b{background:var(--warn-soft)}.si.c{background:var(--pink-soft)}
+
+/* Герой «Сегодня» */
+.hero{background:var(--accent-soft);border-radius:28px;padding:22px;display:flex;gap:22px;align-items:center;margin-bottom:22px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:var(--pink-soft);opacity:.8;z-index:0}
+.hero>*{position:relative;z-index:1}
+.hero-emoji{width:112px;height:112px;border-radius:34px;background:var(--surface);display:grid;place-items:center;font-size:62px;flex:none;box-shadow:var(--shadow);transform:rotate(-4deg)}
+.hero-body{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.hand{font-family:var(--hand);font-size:28px;line-height:1;color:var(--accent-deep);font-weight:700}
+.hero h2{font-size:30px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;gap:5px;align-items:center;background:var(--surface);border-radius:99px;padding:3px 11px 3px 8px;font-size:13.5px;font-weight:600}
+.card .pill{background:var(--surface-2)}
+.pill.lack,.card .pill.lack{background:var(--bad-soft);color:var(--bad)}
+.pill small{color:var(--muted);font-weight:600}
+.pill.lack small{color:var(--bad)}
+.hero-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+
+/* Неделя */
+.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
+.day{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;padding:14px;gap:10px;border:2px solid transparent}
+.day.today{border-color:var(--accent)}
+.day-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.day-head b{font-weight:800}
+.tag{background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:800;padding:2px 9px;border-radius:99px}
+.day-emoji{width:56px;height:56px;border-radius:18px;background:var(--surface-2);display:grid;place-items:center;font-size:32px;flex:none}
+.day-main{display:flex;flex-direction:column;gap:8px;min-width:0}
+.dish-name{font-size:18px;font-weight:800;line-height:1.2}
+.dish-name.none{color:var(--muted);font-weight:600}
+.day.done{background:var(--ok-soft)}
+.day.done .day-emoji{background:var(--surface)}
+.day.done .dish-name{color:var(--ok)}
+.day-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;align-items:center}
+.day-actions select{flex:1;min-width:0;min-height:40px;padding:6px 10px;border-radius:12px}
+
+section.block{margin-top:30px}
+.sec-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sec-head h3{flex:1}
+.list{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:4px 18px}
+.lrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
+.lrow:last-child{border-bottom:0}
+.lrow .em{font-size:26px;flex:none}
+.lrow .nm{flex:1;min-width:0;font-weight:700}
+.lrow .nm small{display:block;color:var(--muted);font-weight:600;font-size:13px}
+.lrow .to{font-weight:800;background:var(--warn-soft);color:var(--warn);border-radius:99px;padding:4px 12px;white-space:nowrap}
+.total-row{display:flex;justify-content:space-between;padding:12px 0 10px;font-weight:800}
+.happy{background:var(--ok-soft);color:var(--ok);border-radius:var(--radius);padding:16px 18px;font-weight:700}
+
+/* Дни и приёмы пищи */
+.daystrip{display:flex;gap:8px;overflow-x:auto;margin:0 -18px 16px;padding:4px 18px 6px;scrollbar-width:none}
+.daystrip::-webkit-scrollbar{display:none}
+.dchip{flex:1 0 64px;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow);border-radius:18px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;min-width:64px}
+.dchip .dn{font-size:13px;font-weight:800;color:var(--muted)}
+.dchip .dd{font-size:20px;font-weight:800;line-height:1}
+.dchip .dots{display:flex;gap:3px}
+.dchip .dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dchip .dots i.p{background:#b9aef0}.dchip .dots i.d{background:var(--ok)}
+.dchip.today .dn{color:var(--accent-deep)}
+.dchip.on{border-color:var(--accent);background:var(--accent-soft)}
+.day-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 12px}
+.day-title .hand{font-size:32px}
+.meals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.meal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px}
+.meal.done{background:var(--ok-soft)}
+.meal-head{display:flex;align-items:center;gap:8px;min-height:38px}
+.meal-head h3{flex:1}
+.meal-ico{font-size:24px}
+.item{border-radius:16px;background:var(--surface-2);padding:10px;display:flex;flex-direction:column;gap:8px}
+.meal.done .item{background:var(--surface)}
+.item.done{opacity:.95}
+.item-main{display:flex;gap:10px;align-items:center}
+.item-emo{width:46px;height:46px;border-radius:14px;background:var(--surface);display:grid;place-items:center;font-size:26px;flex:none}
+.item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.item-name{font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.item.done .item-name{color:var(--ok)}
+.kind{font-size:11px;font-weight:800;background:var(--pink-soft);color:#a3365a;border-radius:99px;padding:1px 7px;margin-right:6px;vertical-align:2px}
+.item-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.side{display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:12px;padding:4px 4px 4px 10px}
+.side-lbl{font-size:13px;font-weight:800;color:var(--muted);white-space:nowrap}
+.side select{border:0;min-height:38px;padding:4px 6px;flex:1;min-width:0;font-weight:700;background:transparent}
+.side select:focus{outline:2px solid var(--accent)}
+.add-side{border:0;background:none;color:var(--accent-deep);font-weight:700;cursor:pointer;padding:4px 2px;text-align:left;font-size:14px}
+.meal-empty{color:var(--muted);font-weight:600;font-size:14px;text-align:center;padding:6px 0}
+.meal-foot{display:flex;gap:6px;flex-wrap:wrap}
+.meal-foot .btn{flex:1}
+.stale{background:var(--warn-soft);color:var(--warn);border-radius:18px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:700;margin-bottom:16px}
+.stale span{flex:1}
+.pick-list{display:flex;flex-direction:column;gap:6px}
+.pick-row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--surface-2);border-radius:16px;padding:10px 12px;cursor:pointer;text-align:left;min-height:56px}
+.pick-row:hover{background:var(--accent-soft)}
+.pick-row.cur{box-shadow:inset 0 0 0 2px var(--accent)}
+.pick-row .em{font-size:26px}
+.pick-row .nm{flex:1;min-width:0;font-weight:700}
+.pick-sub{font-size:13px;font-weight:800;color:var(--muted);margin:8px 2px 0}
+.seg{display:flex;background:var(--surface-2);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:none;border-radius:10px;padding:9px 6px;font-weight:700;cursor:pointer;color:var(--muted);min-height:42px}
+.seg button.on{background:var(--surface);color:var(--accent-deep);box-shadow:var(--shadow)}
+.togs{display:flex;gap:8px;flex-wrap:wrap}
+.tog{border:2px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 14px;font-weight:700;cursor:pointer;color:var(--muted);min-height:42px}
+.tog.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.type-tag{font-size:12px;font-weight:800;color:var(--muted)}
+/* Вчерашнее */
+.chip.left{background:#dcf2f5;color:#1d6f7d}
+.item.left{background:#e8f6f8}
+.item-tools{display:flex;gap:0;margin-left:auto;flex:none}
+.item-tools .icon-act{width:38px;height:38px;font-size:16px}
+.btn.leftbtn{background:#dcf2f5;color:#1d6f7d}
+.btn.leftbtn:hover:not(:disabled){background:#c9ebf0}
+.item-actions .btn{flex:1}
+.sugg{width:100%;border:2px dashed #9fd3db;background:#f2fbfc;border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;text-align:left;cursor:pointer;font-weight:700;color:var(--ink)}
+.sugg:hover{background:#e3f4f6}
+.sugg .em{font-size:24px}
+.sugg small{display:block;color:var(--muted);font-weight:600;font-size:13px}
+.dchip .dots i.l{background:#5fb8c6}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:700;margin:-8px 0 14px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+
+/* Склад */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px}
+.tile{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tile-top{display:flex;gap:12px;align-items:center;min-width:0}
+.tile-top>div:last-child{min-width:0;display:flex;flex-direction:column;gap:4px}
+.em-badge{width:50px;height:50px;border-radius:16px;background:var(--surface-2);display:grid;place-items:center;font-size:28px;flex:none}
+.tile h3{font-size:17px;line-height:1.2;overflow-wrap:anywhere}
+.amount{font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1}
+.amount small{font-size:14px;color:var(--muted);font-weight:700;margin-left:4px}
+.bar{height:9px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--ok);transition:width .4s}
+.bar.low i{background:#e6a117}.bar.zero i{background:var(--bad)}
+.tile-foot{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);font-weight:600;flex-wrap:wrap}
+.tile-actions{display:flex;gap:4px;align-items:center;margin-top:2px}
+.tile-actions .btn{flex:1}
+.tile.lowt{box-shadow:inset 0 0 0 2px #f3d27a,var(--shadow)}
+.tile.zerot{box-shadow:inset 0 0 0 2px #f2a3b0,var(--shadow)}
+.empty{padding:34px;text-align:center;color:var(--muted);font-weight:600;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow)}
+.empty .big{font-size:44px;display:block;margin-bottom:6px}
+
+/* Блюда */
+.dishes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.dish-top{display:flex;gap:12px;align-items:center}
+.dish-top .em-badge{width:58px;height:58px;font-size:32px;border-radius:18px}
+.dish-top .meta{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.cost{font-size:14px;font-weight:700;color:var(--muted)}
+.card .actions{display:flex;gap:6px;align-items:center;margin-top:auto}
+.card .actions .btn{flex:1}
+ul.plain{margin:10px 0 0;padding-left:20px}
+
+/* Цены */
+.months{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:flex;gap:10px;align-items:flex-end;height:200px;margin-bottom:18px}
+.mcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;min-width:0}
+.mcol .mbar{width:100%;max-width:56px;border-radius:12px 12px 6px 6px;background:var(--accent-soft);min-height:4px}
+.mcol.cur .mbar{background:var(--accent)}
+.mcol .mv{font-size:12px;font-weight:800;white-space:nowrap}
+.mcol .ml{font-size:13px;color:var(--muted);font-weight:700}
+.prices{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.price-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;gap:12px;align-items:center;cursor:pointer;border:0;text-align:left;width:100%}
+.price-card:hover{box-shadow:inset 0 0 0 2px var(--accent-soft),var(--shadow)}
+.price-card .mid{flex:1;min-width:0}
+.price-card .pv{font-size:20px;font-weight:800;line-height:1.1}
+.price-card .pv small{font-size:13px;color:var(--muted);font-weight:700}
+.trend{font-size:13px;font-weight:800;border-radius:99px;padding:2px 9px}
+.trend.up{background:var(--bad-soft);color:var(--bad)}
+.trend.down{background:var(--ok-soft);color:var(--ok)}
+.trend.flat{background:var(--surface-2);color:var(--muted)}
+.spark{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.bigchart{background:var(--surface-2);border-radius:16px;padding:10px}
+.bigchart svg{display:block;width:100%;height:auto}
+.hist td,.hist th{padding:9px 10px;font-size:14px}
+
+/* Таблицы и матрица */
+.tablewrap{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+thead th{background:var(--surface-2);font-weight:800;font-size:14px;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.matrix{width:auto;min-width:100%}
+.matrix th,.matrix td{padding:7px 8px;border-right:1px solid var(--line)}
+.matrix thead th{vertical-align:bottom;min-width:92px;max-width:130px;line-height:1.25;text-align:center}
+.matrix thead th .em{font-size:22px;display:block}
+.matrix thead th small{display:block;font-weight:700;color:var(--muted)}
+.matrix .rowh{position:sticky;left:0;background:var(--surface);z-index:1;min-width:200px;padding:4px}
+.matrix thead .rowh{background:var(--surface-2);z-index:2;text-align:left;padding:7px 12px}
+.rowbtn{border:0;background:none;width:100%;text-align:left;font-weight:700;padding:8px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.rowbtn:hover{background:var(--surface-2)}
+.matrix tr.sel .rowh{background:var(--accent-soft)}
+.matrix tr.sel .rowbtn{color:var(--accent-deep)}
+.matrix tr.sel td{background:#f7f5ff}
+.matrix input{width:84px;min-height:40px;text-align:center;padding:6px 8px;border-radius:12px;border:2px solid transparent;background:var(--surface-2)}
+.matrix input:focus{border-color:var(--accent);background:var(--surface)}
+.matrix input.short{background:var(--bad-soft);color:var(--bad);border-color:#f2a3b0}
+.matrix tfoot th,.matrix tfoot td{background:var(--surface-2);font-weight:800;border-bottom:0}
+.matrix tfoot th{padding:9px 12px}
+.matrix tfoot td{text-align:center;font-variant-numeric:tabular-nums}
+.matrix tfoot td.lowc{color:var(--warn)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--line);flex:none}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.filter-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);color:var(--accent-deep);border-radius:16px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+.filter-note span{flex:1}
+
+/* Диалоги */
+dialog{border:0;border-radius:26px;padding:0;background:var(--surface);color:var(--ink);width:min(470px,calc(100vw - 24px));box-shadow:0 24px 70px rgba(42,35,56,.35)}
+dialog.wide{width:min(700px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(42,35,56,.45)}
+#dlgBox{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.dlg-head{padding:22px 24px 6px;display:flex;align-items:center;gap:10px}
+.dlg-head h3{font-size:22px;flex:1}
+.grab{display:none}
+.dlg-body{padding:10px 24px 18px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.dlg-actions{display:flex;gap:8px;padding:14px 24px 20px;border-top:1px solid var(--line);align-items:center}
+.dlg-actions .sp{flex:1}
+.form{display:flex;flex-direction:column;gap:14px}
+.form label,.form .fld{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:14px}
+.form label .hint,.form .fld .hint{font-weight:600;color:var(--muted)}
+.form label.check{flex-direction:row;align-items:center;gap:10px;font-size:15px;color:var(--ink)}
+.form label.check input{flex:none}
+.calc{background:var(--surface-2);border-radius:14px;padding:10px 14px;font-weight:700;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ing-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 70px 40px;gap:8px;align-items:center;margin-bottom:8px}
+.ing-row .unit-sel{padding:10px 4px;font-weight:700}
+.qu{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px}
+.matrix td .cu{display:block;font-size:11px;color:var(--muted);font-weight:700;text-align:center;margin-top:2px}
+.amount-alt{font-size:13px;color:var(--muted);font-weight:700;margin-top:-4px}
+.ing-row select{padding:10px 6px}
+.icon-btn{border:0;background:none;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;border-radius:50%;width:40px;height:40px}
+.icon-btn:hover{color:var(--bad);background:var(--bad-soft)}
+.imp-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.imp-row:last-child{border-bottom:0}
+.imp-row .nm{flex:1;min-width:0;font-weight:700}
+.imp-row .nm small{display:block;font-weight:600;color:var(--muted)}
+.imp-row.err .nm small{color:var(--bad)}
+.dropzone{border:2px dashed var(--line);border-radius:18px;padding:22px;text-align:center;font-weight:700;color:var(--muted);cursor:pointer;display:block}
+.dropzone:hover{border-color:var(--accent);color:var(--accent-deep)}
+
+/* Порции и «хватит на N раз» */
+.stp{display:flex;align-items:center;gap:8px}
+.stp-btn{width:48px;height:48px;border-radius:50%;border:0;background:var(--surface-2);font-size:24px;font-weight:700;cursor:pointer;flex:none;line-height:1}
+.stp-btn:hover:not(:disabled){background:var(--accent-soft)}
+.stp-btn:disabled{opacity:.4;cursor:not-allowed}
+.stp input{width:88px;flex:none;text-align:center;font-weight:800;font-size:18px;padding:8px 6px}
+.stp .stp-unit{color:var(--muted);font-weight:700}
+.cook-sec{background:var(--surface-2);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.cook-sec .fld,.cook-sec label{font-size:14px}
+.cook-sec .stp-btn{background:var(--surface)}
+.cook-sec .stp-btn:hover:not(:disabled){background:var(--accent-soft)}
+.warnline{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px;white-space:pre-line}
+.chip.times{background:var(--mint-soft);color:#17684a}
+.chip.por{background:var(--accent-soft);color:var(--accent-deep)}
+.chips-row{display:flex;gap:6px;flex-wrap:wrap}
+.news{display:flex;gap:12px;align-items:center;background:var(--mint-soft);border-radius:20px;padding:12px 14px;margin-bottom:16px}
+.news .em{font-size:28px;flex:none}
+.news .tx{flex:1;min-width:0;font-weight:700;font-size:15px;line-height:1.35}
+.news .tx small{display:block;color:var(--muted);font-weight:600}
+
+/* Помощь */
+.help-hero{background:var(--accent-soft);border-radius:24px;padding:18px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.help-hero .hand{font-size:30px}
+details.hs{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;scroll-margin-top:120px}
+details.hs>summary{list-style:none;cursor:pointer;display:flex;gap:12px;align-items:center;padding:12px 16px;min-height:60px;font-weight:800;font-size:17px;line-height:1.2}
+details.hs>summary::-webkit-details-marker{display:none}
+details.hs>summary::after{content:"＋";margin-left:auto;color:var(--muted);font-size:20px;flex:none}
+details.hs[open]>summary::after{content:"−"}
+details.hs[open]>summary{color:var(--accent-deep)}
+.hs-ico{width:40px;height:40px;border-radius:13px;background:var(--surface-2);display:grid;place-items:center;font-size:21px;flex:none}
+.hs-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.hs-body p,.hs-body li{line-height:1.5}
+.hs-body ul,.hs-body ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.hs-body h4{margin:6px 0 -4px;font-size:15px;font-weight:800;color:var(--accent-deep)}
+.tip{background:var(--warn-soft);color:#6b4500;border-radius:14px;padding:10px 14px;font-weight:600;font-size:15px}
+.ex{background:var(--mint-soft);border-radius:14px;padding:10px 14px;font-size:15px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
+.keys b{font-size:20px;text-align:center;min-width:34px}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(560px,calc(100vw - 24px));background:var(--ink);color:#fff;padding:13px 20px;border-radius:18px;white-space:pre-line;z-index:90;box-shadow:0 10px 34px rgba(42,35,56,.35);font-weight:600}
+#toast.bad{background:var(--bad)}
+#toast.good{background:var(--ok)}
+.fab{display:none}
+.mob{display:none}
+
+/* ───── Телефон ───── */
+@media (max-width:700px){
+  :root{--nav-h:68px}
+  .wrap{padding:0 14px}
+  .scroller{margin:0 -14px 14px;padding:2px 14px 4px}
+  .desk{display:none!important}
+  .mob{display:initial}
+  header.top{position:sticky}
+  .top-row{padding:10px 0}
+  .brand{font-size:19px;gap:8px}
+  .logo{width:36px;height:36px;font-size:20px;border-radius:12px}
+  .hbtn{width:42px;height:42px;padding:0;justify-content:center;font-size:18px}
+  .hbtn .lbl{display:none}
+  main{padding:16px 0 calc(var(--nav-h) + 90px + env(safe-area-inset-bottom,0px))}
+  h2{font-size:23px}
+  .toolbar{gap:10px;margin-bottom:12px}
+  .toolbar .grow{min-width:0;flex-basis:100%}
+  input[type=search]{min-width:0;width:100%;flex:1}
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .stat{flex-direction:column;align-items:flex-start;gap:6px;padding:12px}
+  .stat .si{width:36px;height:36px;font-size:18px;border-radius:12px}
+  .stat b{font-size:18px}
+  .stat span.l{font-size:12px;line-height:1.25}
+  .hero{flex-direction:column;align-items:stretch;padding:18px;border-radius:24px;gap:14px}
+  .hero-emoji{width:76px;height:76px;font-size:42px;border-radius:24px}
+  .hero h2{font-size:25px}
+  .hero-actions .btn{flex:1}
+  .meals{grid-template-columns:1fr;gap:10px}
+  .daystrip{margin:0 -14px 14px;padding:4px 14px 6px}
+  .dchip{flex:0 0 58px;min-width:58px}
+  .day-title .hand{font-size:28px}
+  .week{grid-template-columns:1fr;gap:10px}
+  .day{display:grid;grid-template-columns:56px minmax(0,1fr);column-gap:12px;row-gap:10px;padding:12px}
+  .day-head{grid-column:1/-1}
+  .day-emoji{grid-column:1;grid-row:2}
+  .day-main{grid-column:2;grid-row:2;justify-content:center}
+  .day-actions{grid-column:1/-1}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tile{padding:12px;gap:8px;border-radius:18px}
+  .tile-top{flex-direction:column;align-items:flex-start;gap:8px}
+  .em-badge{width:42px;height:42px;font-size:24px;border-radius:14px}
+  .tile h3{font-size:15px}
+  .amount{font-size:22px}
+  .tile-foot{font-size:12px}
+  .tile-actions .btn{padding:7px 8px}
+  .dishes,.prices{grid-template-columns:1fr;gap:10px}
+  .months{height:170px;padding:14px 10px;gap:6px}
+  .mcol .mv{font-size:10px}
+  .matrix .rowh{min-width:140px;max-width:150px}
+  .rowbtn{white-space:normal;line-height:1.2}
+  .matrix thead th{min-width:84px}
+  .row2{grid-template-columns:1fr}
+  .ing-row{grid-template-columns:minmax(0,1fr) 78px 62px 40px;gap:6px}
+
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));gap:2px;box-shadow:0 -4px 20px rgba(60,40,120,.1);justify-content:space-around}
+  .tab{flex-direction:column;gap:2px;padding:6px 4px;font-size:12px;background:none;border-radius:14px;flex:1;min-height:54px;justify-content:center}
+  .tab.on{background:var(--accent-soft);color:var(--accent-deep)}
+  .tab .ico{font-size:22px}
+
+  .gen-btn{width:100%;min-height:52px;font-size:17px}
+  .fab{display:flex;position:fixed;right:16px;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:35;height:58px;padding:0 22px;border-radius:99px;border:0;background:var(--accent);color:#fff;font-weight:800;font-size:16px;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(106,85,216,.45);cursor:pointer}
+  .fab b{font-size:26px;line-height:1;font-weight:700}
+  #toast{bottom:calc(var(--nav-h) + 86px + env(safe-area-inset-bottom,0px))}
+
+  /* диалоги — как шторка снизу */
+  dialog,dialog.wide{width:100%;max-width:100%;margin:auto 0 0;border-radius:26px 26px 0 0;max-height:92vh;animation:up .22s ease-out}
+  #dlgBox{max-height:92vh}
+  .grab{display:block;width:44px;height:5px;border-radius:9px;background:var(--line);margin:10px auto 0}
+  .dlg-head{padding:12px 18px 4px}
+  .dlg-head h3{font-size:20px}
+  .dlg-body{padding:8px 18px 16px}
+  .dlg-actions{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));flex-wrap:wrap}
+  .dlg-actions .btn.primary{flex:1;min-height:50px}
+  .dlg-actions .btn.ghost{min-height:50px}
+}
+</style>
+</head>
+<body>
+<div id="busy"></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand"><span class="logo">🥘</span> Домашняя кухня</div>
+      <button class="hbtn" id="btnHelp" aria-label="Помощь">❓<span class="lbl">Помощь</span></button>
+      <button class="hbtn" id="btnLog" aria-label="Журнал">📒<span class="lbl">Журнал</span></button>
+      <button class="hbtn" id="btnNotify" aria-label="Настройки">⚙️<span class="lbl">Настройки</span></button>
+    </div>
+    <nav>
+      <button class="tab" data-t="week"><span class="ico">🗓️</span><span>Меню</span></button>
+      <button class="tab" data-t="stock"><span class="ico">🧺</span><span>Склад</span></button>
+      <button class="tab" data-t="dishes"><span class="ico">🍲</span><span>Блюда</span></button>
+      <button class="tab" data-t="matrix"><span class="ico">🧮</span><span>Матрица</span></button>
+      <button class="tab" data-t="prices"><span class="ico">💰</span><span>Цены</span></button>
+    </nav>
+  </div>
+</header>
+<div id="banner" hidden></div>
+<main><div class="wrap" id="view"><div class="empty"><span class="big">🍳</span>Загружаю вашу кухню…</div></div></main>
+
+<dialog id="dlg"><div id="dlgBox"></div></dialog>
+<input type="file" id="fileIn" accept=".xlsx,.xls,.csv" hidden>
+<div id="toast" hidden></div>
+
+<script>
+const UNITS = ['КГ', 'Г', 'Л', 'МЛ', 'ШТ'];
+const FACT = { 'КГ': 1000, 'Г': 1, 'Л': 1000, 'МЛ': 1, 'ШТ': 1 };          // в граммах / миллилитрах / штуках
+const FAM = { 'КГ': 'm', 'Г': 'm', 'Л': 'v', 'МЛ': 'v', 'ШТ': 'p' };
+const FAM_UNITS = { m: ['КГ', 'Г'], v: ['Л', 'МЛ'], p: ['ШТ'] };
+const UNIT_LBL = { 'КГ': 'кг', 'Г': 'г', 'Л': 'л', 'МЛ': 'мл', 'ШТ': 'шт' };
+const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const DAYS_FULL = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const MONTHS_NOM = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+const EPS = 1e-9;
+
+let S = null;
+let tab = 'week';
+let onlyAvail = true;
+const q = { stock: '', dishes: '', prices: '', help: '' };
+let dishFilter = 'all', stockFilter = 'all', priceFilter = 'all';
+let mDish = null;
+let selDay = null;
+const genOpts = { meals: ['Завтрак', 'Обед', 'Ужин'], sides: true, leftovers: true };
+const DEF_PORTIONS = 4;   // если у блюда не указано, на сколько порций рецепт (так же считает и сервер)
+const MEALS = ['Завтрак', 'Обед', 'Ужин'];
+const MEAL_EMO = { 'Завтрак': '🌅', 'Обед': '☀️', 'Ужин': '🌙' };
+const TYPE_LBL = { main: 'Основное', side: 'Гарнир', extra: 'Салат / доп.' };
+
+/* ───── эмодзи по названию ───── */
+const PROD_EMO = [['творог', '🥣'], ['овсян', '🥣'], ['сливоч', '🧈'], ['картоф', '🥔'], ['морков', '🥕'], ['чеснок', '🧄'], ['лук', '🧅'], ['свекл', '🟣'], ['капуст', '🥬'],
+  ['помидор', '🍅'], ['томат', '🍅'], ['огур', '🥒'], ['перец', '🫑'], ['яблок', '🍎'], ['банан', '🍌'], ['лимон', '🍋'],
+  ['говяд', '🥩'], ['фарш', '🥩'], ['свинин', '🥓'], ['кур', '🍗'], ['рыб', '🐟'], ['рис', '🍚'], ['гречк', '🌾'], ['макарон', '🍝'],
+  ['мук', '🌾'], ['сахар', '🍬'], ['молок', '🥛'], ['сметан', '🥣'], ['кефир', '🥛'], ['масл', '🫒'], ['яйц', '🥚'], ['сыр', '🧀'],
+  ['хлеб', '🍞'], ['соль', '🧂'], ['чай', '🍵'], ['кофе', '☕']];
+const DISH_EMO = [['пюре', '🥔'], ['рис', '🍚'], ['винегрет', '🥗'], ['омлет', '🍳'], ['борщ', '🍲'], ['плов', '🍛'], ['суп', '🍲'], ['блин', '🥞'], ['салат', '🥗'], ['котлет', '🍖'], ['макарон', '🍝'],
+  ['яичниц', '🍳'], ['омлет', '🍳'], ['картош', '🥔'], ['пельмен', '🥟'], ['манты', '🥟'], ['пицц', '🍕'], ['пирог', '🥧'],
+  ['рыб', '🐟'], ['гречк', '🍛'], ['курин', '🍗'], ['куриц', '🍗'], ['каша', '🥣'], ['сырник', '🧇']];
+function emo(name, dish) {
+  const n = String(name).toLowerCase().replace(/ё/g, 'е');
+  const hit = (dish ? DISH_EMO : PROD_EMO).find(([k]) => n.includes(k));
+  return hit ? hit[1] : (dish ? '🍽️' : '🧺');
+}
+
+/* ───── утилиты ───── */
+const $ = (s, r = document) => r.querySelector(s);
+
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (props || {})) {
+    const v = props[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k === 'html') e.innerHTML = v;            // только для SVG из чисел
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'value') e.value = v;
+    else if (k === 'checked' || k === 'disabled' || k === 'selected') e[k] = !!v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  kids.flat(Infinity).forEach(c => {
+    if (c == null || c === false) return;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  });
+  return e;
+}
+
+const r3 = x => Math.round(x * 1000) / 1000;
+const fmt = n => r3(n).toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+const qtyStr = (n, unit) => fmt(n) + '\u00a0' + (UNIT_LBL[unit] || unit);
+const sameFam = (a, b) => !!FAM[a] && FAM[a] === FAM[b];
+const conv = (x, from, to) => (!from || !to || from === to || !sameFam(from, to)) ? x : Math.round(x * FACT[from] / FACT[to] * 1e6) / 1e6;
+const famOf = u => FAM_UNITS[FAM[u]] || UNITS;
+/* 0,25 кг → 250 г; 1500 мл → 1,5 л */
+function nice(x, u) {
+  if (u === 'КГ' && x > 0 && x < 1) return [x * 1000, 'Г'];
+  if (u === 'Г' && x >= 1000) return [x / 1000, 'КГ'];
+  if (u === 'Л' && x > 0 && x < 1) return [x * 1000, 'МЛ'];
+  if (u === 'МЛ' && x >= 1000) return [x / 1000, 'Л'];
+  return [x, u];
+}
+const qtyNice = (n, unit) => { const [v, u] = nice(n, unit); return qtyStr(v, u); };
+const numOut = x => String(Number(Number(x).toFixed(6)));
+function unitSelect(units, selected, label) {
+  return h('select', { class: 'unit-sel', 'aria-label': label || 'Единица' }, units.map(u => h('option', { value: u, selected: u === selected }, UNIT_LBL[u])));
+}
+const withUnit = (input, sel) => h('div', { class: 'qu' }, input, sel);
+const money = n => Math.round(n).toLocaleString('ru-RU') + '\u00a0₸';
+const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
+const P = id => S.products.find(p => p.id === id);
+const D = id => S.dishes.find(d => d.id === id);
+const ingOf = id => S.ing.filter(i => i.dish === id && P(i.product));
+const isLow = p => p.stock <= p.min;
+const toNum = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
+
+function status(dishId) {
+  const ings = ingOf(dishId);
+  const lacks = ings.filter(i => P(i.product).stock + EPS < i.qty);
+  return { ok: lacks.length === 0, lacks, empty: ings.length === 0 };
+}
+
+/* цены: храним за базовую единицу (кг, мл, шт), показываем за кг, литр, шт */
+/* ps — цена за 1 г / 1 мл / 1 шт; показываем за кг, литр или штуку */
+const STD = { m: 1000, v: 1000, p: 1 };
+const perLbl = u => ({ m: 'кг', v: 'л', p: 'шт' })[FAM[u]] || 'шт';
+const dispPrice = (ps, u) => ps * (STD[FAM[u]] || 1);
+const priceStr = (ps, u) => money(dispPrice(ps, u)) + '/' + perLbl(u);
+function pricesOf(pid) {
+  return (S.purchases || []).filter(x => x.product === pid && x.price > 0)
+    .map(x => Object.assign({}, x, { ps: x.price / (FACT[x.unit] || 1) }))
+    .sort((a, b) => a.when.localeCompare(b.when));
+}
+function lastPrice(pid) { const a = pricesOf(pid); return a.length ? a[a.length - 1].ps : null; }
+function dishCost(dishId) {
+  let sum = 0, missing = 0;
+  ingOf(dishId).forEach(i => { const lp = lastPrice(i.product); if (lp == null) missing++; else sum += lp * i.qty * (FACT[P(i.product).unit] || 1); });
+  return { sum, missing };
+}
+
+function cleanErr(e) {
+  const m = (e && e.message) ? e.message : String(e);
+  return m.replace(/^Error:\s*/, '');
+}
+
+let toastTimer;
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = kind || '';
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, kind === 'bad' ? 7000 : 5000);
+}
+
+function call(fn, ...args) {
+  return new Promise((res, rej) => {
+    google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args);
+  });
+}
+
+async function act(fn, ...args) {
+  document.body.classList.add('busy');
+  try {
+    const st = await call(fn, ...args);
+    S = st;
+    if (st.notice) toast(st.notice);
+    render();
+    return st;
+  } catch (e) {
+    toast(cleanErr(e), 'bad');
+    return null;
+  } finally {
+    document.body.classList.remove('busy');
+  }
+}
+
+/* ───── диалоги (на телефоне — шторка снизу) ───── */
+function modal({ title, body, okText = 'Сохранить', onOk, wide, extra, cancelText = 'Отмена', noOk }) {
+  const dlg = $('#dlg');
+  dlg.classList.toggle('wide', !!wide);
+  $('#dlgBox').replaceChildren(
+    h('div', { class: 'grab' }),
+    h('div', { class: 'dlg-head' }, h('h3', { text: title }),
+      h('button', { class: 'icon-btn', 'aria-label': 'Закрыть', onclick: () => dlg.close() }, '×')),
+    h('div', { class: 'dlg-body' }, body),
+    h('div', { class: 'dlg-actions' },
+      extra ? h('button', { class: 'btn ghost ' + (extra.cls || ''), onclick: extra.onClick }, extra.text) : null,
+      h('span', { class: 'sp' }),
+      h('button', { class: 'btn ghost', onclick: () => dlg.close() }, cancelText),
+      noOk ? null : h('button', { class: 'btn primary', onclick: async () => {
+        const r = await onOk();
+        if (r !== false) dlg.close();
+      } }, okText))
+  );
+  if (!dlg.open) dlg.showModal();
+}
+$('#dlg').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+
+function confirmBox(body, okText = 'Да', title = 'Подтвердите') {
+  return new Promise(resolve => {
+    let done = false;
+    const fin = v => { if (!done) { done = true; resolve(v); } };
+    modal({
+      title,
+      body: typeof body === 'string' ? h('p', { text: body }) : body,
+      okText,
+      onOk: () => { fin(true); }
+    });
+    $('#dlg').addEventListener('close', () => fin(false), { once: true });
+  });
+}
+
+/* Подпись поля. В <label> оборачиваем только одиночное поле ввода: если внутри несколько кнопок,
+   iPhone (Safari) при нажатии на любую из них «нажимает» ещё и первую — поэтому для групп берём <div>. */
+const field = (label, input, hint) => {
+  const single = input && ['INPUT', 'SELECT', 'TEXTAREA'].includes(input.tagName);
+  return h(single ? 'label' : 'div', single ? {} : { class: 'fld' }, h('span', {}, label, hint ? h('span', { class: 'hint', text: ' ' + hint }) : null), input);
+};
+const numInput = (v, ph) => h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: v, placeholder: ph || '' });
+
+/* ───── Excel ───── */
+/* Единый формат Excel: один и тот же файл скачивается (список покупок или бланк склада),
+   заполняется в магазине и загружается обратно. Жёлтые столбцы — заполнить, остальные — подсказки. */
+const XL_HEAD = ['Название', 'Ед.', 'Купить (подсказка)', 'Куплено', 'Сумма, ₸', 'Мин. остаток', 'На складе', 'Нужно на меню', 'Примерно, ₸'];
+const XL_OPTS = { fill: [4, 5, 6], unitCol: 2 };
+
+async function offerXlsx(filename, rows, opts) {
+  if (window.DEMO_SAVE) return window.DEMO_SAVE(filename, rows, opts);
+  document.body.classList.add('busy');
+  try {
+    const url = await call('exportXlsx', filename.replace(/\.xlsx$/, ''), rows, opts || null);
+    modal({
+      title: '📄 Файл готов',
+      body: h('div', { class: 'form' },
+        h('p', { class: 'muted', text: 'Заполните в файле «Куплено» и, если хотите, «Сумма» — потом загрузите его обратно на вкладке «Склад».' }),
+        h('a', { class: 'btn primary wide', href: url, target: '_blank', rel: 'noopener' }, '⬇️ Скачать ' + filename)),
+      cancelText: 'Закрыть', noOk: true
+    });
+  } catch (e) {
+    toast(cleanErr(e), 'bad');
+  } finally {
+    document.body.classList.remove('busy');
+  }
+}
+
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+
+function xlRow(p, plan, need, cost) {
+  return [p.name, p.unit, plan > 0 ? r3(plan) : '', '', '', r3(p.min), r3(p.stock), need > 0 ? r3(need) : '', cost != null ? Math.round(cost) : ''];
+}
+
+/** Бланк всего склада в том же формате — для большой закупки или первой загрузки. */
+function downloadTemplate() {
+  const need = weekNeed();
+  const shop = {};
+  shoppingList().forEach(r => { shop[r.p.id] = r; });
+  const rows = [XL_HEAD];
+  if (S.products.length) {
+    [...S.products].sort(byName).forEach(p => {
+      const r = shop[p.id];
+      rows.push(xlRow(p, r ? r.buy : 0, need[p.id] || 0, r ? r.cost : null));
+    });
+  } else {
+    rows.push(['Картофель', 'КГ', '', 3, 750, 1, '', '', '']);
+    rows.push(['Молоко', 'Л', '', 2, 1100, 0.5, '', '', '']);
+    rows.push(['Сыр', 'Г', '', 300, 1500, 100, '', '', '']);
+    rows.push(['Яйца', 'ШТ', '', 10, 800, 4, '', '', '']);
+  }
+  offerXlsx(`Бланк склада ${todayStr()}.xlsx`, rows, XL_OPTS);
+}
+
+function normUnit(u) {
+  const s = String(u || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!s) return '';
+  if (['кг', 'kg', 'килограмм', 'килограммы', 'килограммов'].includes(s)) return 'КГ';
+  if (['г', 'гр', 'g', 'грамм', 'граммы', 'граммов'].includes(s)) return 'Г';
+  if (['л', 'l', 'литр', 'литры', 'литров'].includes(s)) return 'Л';
+  if (['мл', 'ml', 'миллилитр', 'миллилитров'].includes(s)) return 'МЛ';
+  if (['шт', 'pcs', 'штук', 'штуки', 'штука'].includes(s)) return 'ШТ';
+  return '?';
+}
+
+function parseImport(aoa) {
+  const rows = aoa.filter(r => r && r.some(c => String(c == null ? '' : c).trim() !== ''));
+  if (!rows.length) return [];
+  const head = rows[0].map(c => String(c == null ? '' : c).trim().toLowerCase());
+  const col = (...keys) => { for (const k of keys) { const i = head.findIndex(c => c.startsWith(k)); if (i >= 0) return i; } return -1; };
+  let idx = { name: col('назв', 'продукт'), unit: col('ед'), qty: col('куплен', 'кол'), min: col('мин'), total: col('сумм', 'цена') };
+  let data = rows.slice(1);
+  if (idx.name < 0) { idx = { name: 0, unit: 1, qty: 2, min: 3, total: 4 }; data = rows; }
+  const get = (r, i) => i >= 0 && r[i] != null ? r[i] : '';
+  return data.filter(r => !/^итого/i.test(String(get(r, idx.name)).trim())).map(r => {
+    const name = String(get(r, idx.name)).trim();
+    const fileUnit = normUnit(get(r, idx.unit));
+    const qtyRaw = toNum(get(r, idx.qty));
+    const minRaw = toNum(get(r, idx.min));
+    const totalRaw = toNum(get(r, idx.total));
+    const ex = S.products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    const unit = fileUnit || (ex ? ex.unit : '');
+    let err = '';
+    if (!name) err = 'нет названия';
+    else if (fileUnit === '?') err = 'непонятная единица (нужно КГ, Г, Л, МЛ или ШТ)';
+    else if (ex && !sameFam(unit, ex.unit)) err = `на складе в ${UNIT_LBL[ex.unit]}, а в файле ${UNIT_LBL[unit]}`;
+    else if (!ex && !unit) err = 'укажите единицу для нового продукта';
+    else if ((qtyRaw != null && qtyRaw < 0) || (totalRaw != null && totalRaw < 0) || (minRaw != null && minRaw < 0)) err = 'отрицательное число';
+    // минимум меняем, только если его правда исправили (а не просто оставили подсказку)
+    let min = '';
+    if (minRaw != null) {
+      if (!ex) min = r3(minRaw);
+      else if (Math.abs(minRaw - ex.min) > 1e-9 && Math.abs(conv(minRaw, unit, ex.unit) - ex.min) > 1e-9) min = minRaw;
+    }
+    const qty = qtyRaw > 0 ? qtyRaw : 0;
+    const kind = err ? 'err' : !ex ? 'new' : qty > 0 ? 'add' : min !== '' ? 'min' : 'skip';
+    return { name, unit, qty, min, total: qty > 0 && totalRaw != null ? totalRaw : '', ex, err, kind };
+  });
+}
+
+function pickExcel() {
+  if (typeof XLSX === 'undefined') { toast('Не удалось загрузить модуль Excel. Проверьте интернет и обновите страницу.', 'bad'); return; }
+  const inp = $('#fileIn');
+  inp.value = '';
+  inp.onchange = async () => {
+    const f = inp.files[0];
+    if (!f) return;
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+      importPreview(parseImport(aoa), f.name);
+    } catch (e) {
+      toast('Не получилось прочитать файл: ' + cleanErr(e), 'bad');
+    }
+  };
+  inp.click();
+}
+
+function importPreview(rows, fname) {
+  const send = rows.filter(r => ['add', 'new', 'min'].includes(r.kind));
+  const skip = rows.filter(r => r.kind === 'skip');
+  const cnt = k => rows.filter(r => r.kind === k).length;
+  const ICON = { add: '➕', new: '🆕', min: '⚙️', err: '⚠️' };
+  const detail = r => {
+    if (r.kind === 'err') return r.err;
+    if (r.kind === 'new') return 'новый продукт' + (r.total !== '' ? `, ${money(r.total)}` : '');
+    const parts = [];
+    if (r.kind === 'add') parts.push('станет ' + qtyNice(r.ex.stock + conv(r.qty, r.unit, r.ex.unit), r.ex.unit));
+    if (r.total !== '') parts.push(money(r.total));
+    if (r.min !== '') parts.push('минимум → ' + qtyStr(r.min, r.unit));
+    return parts.join(', ');
+  };
+  const summary = [cnt('add') && `пополнить: ${cnt('add')}`, cnt('new') && `новых: ${cnt('new')}`, cnt('min') && `изменить минимум: ${cnt('min')}`,
+    skip.length && `не куплено: ${skip.length}`, cnt('err') && `с ошибкой: ${cnt('err')}`].filter(Boolean).join(', ');
+  const body = h('div', {},
+    h('p', { class: 'muted small', text: `${fname}. ${summary || 'нет строк с продуктами'}.` }),
+    h('div', {}, rows.filter(r => r.kind !== 'skip').map(r => h('div', { class: 'imp-row' + (r.kind === 'err' ? ' err' : '') },
+      h('span', { text: ICON[r.kind] }),
+      h('div', { class: 'nm' }, r.name || '—', h('small', { text: detail(r) })),
+      r.qty > 0 && r.kind !== 'err' ? h('b', { text: '+' + qtyStr(r.qty, r.unit) }) : null))),
+    skip.length ? h('p', { class: 'muted small', style: 'margin-top:10px', text: 'Пропущу (не заполнено «Куплено»): ' + skip.map(r => r.name).join(', ') }) : null);
+  modal({
+    title: '📥 Загрузка из Excel',
+    body,
+    okText: send.length ? `Загрузить (${send.length})` : 'Закрыть',
+    onOk: async () => {
+      if (!send.length) return true;
+      return !!(await act('importProducts', send.map(r => ({ name: r.name, unit: r.unit, qty: r.qty, min: r.min, total: r.total }))));
+    }
+  });
+}
+
+/* ───── Порции и список покупок ───── */
+const dishP = id => { const d = D(id); return d && d.portions > 0 ? d.portions : DEF_PORTIONS; };
+const defP = () => (S.settings && S.settings.portions) || 0;                 // «обычно готовим на N порций» (0 — по рецепту)
+const itemP = it => (it.portions > 0 ? it.portions : defP());
+const timesWord = n => ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'раза' : 'раз');
+/* P — порции (не задано = как в настройках, 0 = по рецепту); каждое блюдо масштабируется от своего рецепта */
+function needMap(dishId, sideId, P) {
+  const p = P === undefined ? defP() : P;
+  const n = {};
+  [dishId, sideId].forEach(id => {
+    if (!id) return;
+    const k = p > 0 ? p / dishP(id) : 1;
+    ingOf(id).forEach(i => { n[i.product] = (n[i.product] || 0) + i.qty * k; });
+  });
+  return n;
+}
+const itemNeed = it => it.left ? {} : needMap(it.dish, it.kind === 'main' ? it.side : '', itemP(it));   // вчерашнее склад не трогает
+const lacksOf = need => Object.keys(need).filter(k => P(k) && P(k).stock + EPS < need[k]);
+const needLines = need => Object.keys(need).filter(k => P(k)).map(k => `${emo(P(k).name)} ${P(k).name}: −${qtyNice(need[k], P(k).unit)}`);
+function weekNeed() {
+  const need = {};
+  (S.plan || []).forEach(it => { if (it.dish && !it.done) { const n = itemNeed(it); Object.keys(n).forEach(k => { need[k] = (need[k] || 0) + n[k]; }); } });
+  return need;
+}
+function shoppingList() {
+  const need = weekNeed();
+  return S.products.map(p => {
+    const n = need[p.id] || 0;
+    const short = n > p.stock + EPS;
+    if (!short && !isLow(p)) return null;
+    let buy = r3(Math.max(0, n + p.min - p.stock));
+    if (buy <= 0) buy = p.min > 0 ? p.min : 0;
+    const lp = lastPrice(p.id);
+    return { p, need: n, buy, short, cost: lp != null ? lp * buy * (FACT[p.unit] || 1) : null };
+  }).filter(Boolean).sort((a, b) => (b.short - a.short) || byName(a.p, b.p));
+}
+function exportShopping() {
+  const list = shoppingList();
+  if (!list.length) { toast('Докупать ничего не нужно 🎉 Для большой закупки скачайте бланк склада.', 'good'); return; }
+  const rows = [XL_HEAD];
+  let total = 0;
+  list.forEach(r => {
+    rows.push(xlRow(r.p, r.buy, r.need, r.cost));
+    if (r.cost != null) total += r.cost;
+  });
+  rows.push(['Итого', '', '', '', '', '', '', '', Math.round(total)]);
+  offerXlsx(`Список покупок ${todayStr()}.xlsx`, rows, XL_OPTS);
+}
+
+/* ───── шапка и баннер ───── */
+function renderBanner() {
+  const b = $('#banner');
+  const low = S.products.filter(isLow);
+  if (!low.length) { b.hidden = true; return; }
+  const shown = low.slice(0, 4).map(p => `${emo(p.name)} ${p.name}`).join(', ');
+  b.replaceChildren(h('div', { class: 'wrap' },
+    h('span', { class: 'txt' }, h('b', { text: '🛒 Пора докупить: ' }), shown + (low.length > 4 ? ` и ещё ${low.length - 4}` : '')),
+    h('button', { class: 'btn sm', onclick: () => { tab = 'stock'; stockFilter = 'low'; render(); } }, 'Смотреть')));
+  b.hidden = false;
+}
+
+$('#btnNotify').addEventListener('click', () => {
+  if (!S) return;
+  const email = h('input', { type: 'email', value: S.settings.email, placeholder: 'name@example.com', inputmode: 'email' });
+  const por = h('input', { type: 'number', min: '1', max: '100', step: '1', inputmode: 'numeric', placeholder: 'по рецепту', value: S.settings.portions || '' });
+  modal({
+    title: '⚙️ Настройки',
+    body: h('div', { class: 'form' },
+      field('Обычно готовим на, порций', por, '— пусто: берём рецепт как есть'),
+      h('p', { class: 'muted small', text: 'Например, в семье 6 человек: впишите 6 — и список покупок, списание со склада и «можно ли приготовить» будут считаться на 6 порций. В окне «Готовим?» число всегда можно поменять.' }),
+      field('Почта для уведомлений', email, '(пусто — письма отключены)'),
+      h('p', { class: 'muted small', text: 'Напишу, когда после готовки продукт подходит к концу, а также раз в день, если включена проверка в меню таблицы.' })),
+    onOk: async () => {
+      const v = String(por.value).trim();
+      if (v !== '' && !(toNum(v) >= 1 && toNum(v) <= 100)) { toast('Порций должно быть от 1 до 100 (или пусто).', 'bad'); return false; }
+      return !!(await act('saveSettings', email.value, v));
+    }
+  });
+});
+$('#btnLog').addEventListener('click', () => { tab = 'log'; if (S) render(); });
+$('#btnHelp').addEventListener('click', () => { tab = 'help'; if (S) { render(); window.scrollTo(0, 0); } });
+
+/* ───── Меню на неделю: дни × завтрак / обед / ужин ───── */
+function parseDate(s) {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function mondayDate() { const t = new Date(); t.setHours(0, 0, 0, 0); return addDays(t, -((t.getDay() + 6) % 7)); }
+function todayIdx() {
+  if (!S.settings.weekStart) return -1;
+  const ws = parseDate(S.settings.weekStart);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((t - ws) / 86400000);
+  return diff >= 0 && diff < 7 ? diff : -1;
+}
+const planOf = (day, meal) => (S.plan || []).filter(it => it.day === day && it.meal === meal)
+  .sort((a, b) => (a.kind === 'main' ? 0 : 1) - (b.kind === 'main' ? 0 : 1));
+const mainsFor = meal => S.dishes.filter(d => d.type === 'main' && d.meals.includes(meal));
+const LEFT_MEALS = ['Обед', 'Ужин'];
+const titleOf = (dish, side) => (D(dish) ? D(dish).name : '') + (side && D(side) ? ' + ' + D(side).name : '');
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+function dayLbl(day) {
+  const ti = todayIdx();
+  if (ti >= 0 && day - 1 === ti) return 'сегодня';
+  if (ti >= 0 && day - 1 === ti + 1) return 'завтра';
+  if (ti >= 0 && day - 1 === ti - 1) return 'вчера';
+  const d = addDays(S.settings.weekStart ? parseDate(S.settings.weekStart) : mondayDate(), day - 1);
+  return DAYS[d.getDay()].toLowerCase() + ' ' + d.getDate();
+}
+/* Что готовили недавно (вчера и сегодня раньше) — кандидаты «доесть». */
+function recentCooked(day, meal) {
+  const mi = MEALS.indexOf(meal);
+  const seen = new Set(), out = [];
+  (S.plan || []).filter(it => it.done && D(it.dish) && LEFT_MEALS.includes(it.meal) &&
+      (it.day === day - 1 || (it.day === day && MEALS.indexOf(it.meal) < mi)))
+    .sort((a, b) => (b.day - a.day) || (MEALS.indexOf(b.meal) - MEALS.indexOf(a.meal)) || ((a.kind === 'main' ? 0 : 1) - (b.kind === 'main' ? 0 : 1)))
+    .forEach(it => {
+      const side = it.kind === 'main' ? it.side : '';
+      const key = it.dish + '+' + side;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ dish: it.dish, side, from: `${dayLbl(it.day)}, ${it.meal.toLowerCase()}` });
+    });
+  return out;
+}
+/* Куда можно поставить остатки: следующие обеды и ужины сегодня и завтра. */
+function leftoverTargets(day, meal) {
+  const mi = meal ? MEALS.indexOf(meal) : -1;
+  const out = [];
+  [[day, m => MEALS.indexOf(m) > mi], [day + 1, () => true]].forEach(([d, ok]) => {
+    if (d < 1 || d > 7) return;
+    LEFT_MEALS.forEach(m => {
+      if (!ok(m)) return;
+      const main = planOf(d, m).find(i => i.kind === 'main');
+      if (main && main.done) return;
+      out.push({ day: d, meal: m, label: cap(`${dayLbl(d)}, ${m.toLowerCase()}`) + (main && D(main.dish) ? ` (вместо «${D(main.dish).name}»)` : '') });
+    });
+  });
+  return out;
+}
+/* Число с кнопками − и ＋ (на телефоне удобнее, чем набирать). get() всегда возвращает целое в пределах min…max. */
+function stepper(val, { min = 1, max = 99, label = '' } = {}, onChange) {
+  const inp = h('input', { type: 'number', min: String(min), max: String(max), step: '1', inputmode: 'numeric', 'aria-label': label || 'Количество' });
+  const clamp = x => Math.max(min, Math.min(max, Math.round(Number.isFinite(x) ? x : min)));
+  let v = clamp(val);
+  const dec = h('button', { type: 'button', class: 'stp-btn', 'aria-label': 'Меньше', onclick: () => set(v - 1) }, '−');
+  const inc = h('button', { type: 'button', class: 'stp-btn', 'aria-label': 'Больше', onclick: () => set(v + 1) }, '＋');
+  const sync = () => { dec.disabled = v <= min; inc.disabled = v >= max; };
+  function set(x) { v = clamp(x); inp.value = v; sync(); if (onChange) onChange(v); }
+  inp.addEventListener('input', () => { const n = toNum(inp.value); if (n != null) { v = clamp(n); sync(); if (onChange) onChange(v); } });
+  inp.addEventListener('blur', () => { inp.value = v; });
+  inp.value = v; sync();
+  const el = h('div', { class: 'stp' }, dec, inp, inc);
+  el.get = () => v;
+  el.set = set;
+  return el;
+}
+
+const guessMeal = () => { const hr = new Date().getHours(); return hr < 11 ? 'Завтрак' : hr < 16 ? 'Обед' : 'Ужин'; };
+
+/* Куда встанут остатки при автоматической раскладке — те же правила, что на сервере. */
+function autoSlots(src, count) {
+  if (!src || count < 1) return [];
+  const meal = src.meal === 'Ужин' ? 'Ужин' : 'Обед';
+  const out = [];
+  for (let i = 0; i < count && src.day + 1 + i <= 7; i++) out.push({ day: src.day + 1 + i, meal });
+  return out;
+}
+function slotsLabel(slots) {
+  const one = s => cap(dayLbl(s.day)) + ', ' + s.meal.toLowerCase();
+  if (slots.length <= 3) return slots.map(one).join(' · ');
+  return one(slots[0]) + ' … ' + one(slots[slots.length - 1]);
+}
+
+/**
+ * Панель готовки: сколько порций, на сколько раз хватит и что с остатками.
+ * o: { entries: () => [{dish, side, left}], mainId, src: {day, meal}|null, withLeft, onChange }
+ */
+function cookPanel(o) {
+  const ents = () => o.entries();
+  const cooks = () => ents().filter(e => !e.left);
+  const first = cooks()[0];
+  const portions = first ? stepper(defP() || dishP(o.mainId || first.dish), { min: 1, max: 100, label: 'Порций' }, () => { note(); o.onChange && o.onChange(); }) : null;
+  const note = () => { if (portions) pNote.textContent = cooks().map(e => `«${D(e.dish).name}» — рецепт на ${dishP(e.dish)}`).filter((x, i, a) => a.indexOf(x) === i).join('; '); };
+  const pNote = h('div', { class: 'muted small', style: 'font-weight:600' });
+  const mainD = o.mainId ? D(o.mainId) : null;
+  const times = o.withLeft && mainD ? stepper(mainD.times || 1, { min: 1, max: 7, label: 'Хватит на, раз' }, () => { drawSel(); }) : null;
+  const targets = o.withLeft ? leftoverTargets(o.src ? o.src.day : 1, o.src ? o.src.meal : null) : [];
+  const sel = h('select', { 'aria-label': 'Остатки на потом' });
+  let touched = false;
+  sel.addEventListener('change', () => { touched = true; });
+  const hint = h('div', { class: 'muted small', style: 'font-weight:600' });
+  function drawSel() {
+    if (!times) return;
+    const n = times.get();
+    const auto = autoSlots(o.src, n - 1);
+    const prev = sel.value;
+    const opts = [];
+    if (n > 1) opts.push(h('option', { value: 'auto' }, auto.length ? '♻️ Само, на следующие дни' : '♻️ Конец недели — не переносятся'));
+    opts.push(h('option', { value: 'none' }, n > 1 ? 'Не ставить в меню' : 'Нет, съедим сразу'));
+    targets.forEach((t, i) => opts.push(h('option', { value: String(i) }, (n > 1 ? 'Начать с: ' : '♻️ ') + t.label)));
+    sel.replaceChildren(...opts);
+    const valid = [...sel.options].some(op => op.value === prev);
+    sel.value = touched && valid ? prev : (n > 1 ? 'auto' : 'none');
+    hint.textContent = n > 1
+      ? (auto.length ? `Встанет в меню: ${slotsLabel(auto)}. ` : '') + `Сегодня съедим, а ещё ${n - 1} ${timesWord(n - 1)} — «вчерашнее»: со склада второй раз не спишется.`
+      : 'Если блюдо останется — выберите, на какой приём пищи его поставить.';
+  }
+  drawSel(); note();
+  const timesEl = times ? field('Хватит на, раз', times, '— вместе с сегодняшним') : null;
+  const leftEl = times ? h('div', { class: 'form' }, field('Остатки на потом', sel), hint) : null;
+  return {
+    pEl: portions ? h('div', { class: 'form' }, field('Готовим на, порций', portions), pNote) : null,
+    lEl: times ? h('div', { class: 'cook-sec' }, timesEl, leftEl) : null,
+    P: () => (portions ? portions.get() : 0),
+    need() {
+      const total = {};
+      ents().forEach(e => {
+        if (e.left) return;
+        const n = needMap(e.dish, e.side || '', portions ? portions.get() : 0);
+        Object.keys(n).forEach(k => { total[k] = (total[k] || 0) + n[k]; });
+      });
+      return total;
+    },
+    read() {
+      const o2 = {};
+      if (portions) o2.portions = portions.get();
+      if (times) {
+        o2.times = times.get();
+        const v = sel.value;
+        if (v === 'none') o2.target = 'none';
+        else if (v !== 'auto') o2.target = { day: targets[+v].day, meal: targets[+v].meal };
+        if (o.src) o2.src = o.src;
+      }
+      return o2;
+    }
+  };
+}
+
+/* Окно «Готовим?»: возвращает параметры для сервера или null, если передумали. */
+async function askCook({ title, intro, entries, mainId, src, withLeft, watch, lead }) {
+  const lack = h('div', { class: 'warnline', hidden: true });
+  const list = h('ul', { class: 'plain' });
+  const noteLine = h('p', { class: 'muted', hidden: true, text: 'Состав не указан — ничего не спишется.' });
+  const listWrap = h('div', {}, h('p', { text: 'Спишу со склада:', style: 'font-weight:700' }), list);
+  const panel = cookPanel({ entries, mainId, src, withLeft, onChange: () => redraw() });
+  function redraw() {
+    const cooking = entries().some(e => !e.left);
+    const need = panel.need();
+    const lines = needLines(need);
+    list.replaceChildren(...lines.map(l => h('li', { text: l })));
+    listWrap.hidden = !cooking || !lines.length;
+    noteLine.hidden = !cooking || lines.length > 0;
+    const l = lacksOf(need).map(k => `${P(k).name}: нужно ${qtyNice(need[k], P(k).unit)}, есть ${qtyNice(P(k).stock, P(k).unit)}`);
+    lack.textContent = l.length ? 'Не хватает:\n' + l.join('\n') : '';
+    lack.hidden = !l.length;
+  }
+  (watch || []).forEach(w => w.addEventListener('change', redraw));
+  const body = h('div', { class: 'form' }, intro ? h('p', { text: intro }) : null, lead || null, panel.pEl, listWrap, noteLine, lack, panel.lEl);
+  redraw();
+  const noCook = !entries().some(e => !e.left);
+  if (!(await confirmBox(body, noCook ? 'Готово' : 'Приготовлено', title))) return null;
+  return panel.read();
+}
+function leftoverPicker(day, meal, item) {
+  const rec = recentCooked(day, meal);
+  const choose = async (dish, side) => { if (await act('addLeftover', day, meal, dish, side)) $('#dlg').close(); };
+  const row = (dish, side, sub, onclick) => h('button', { class: 'pick-row', onclick },
+    h('span', { class: 'em', text: emo(D(dish).name, true) }),
+    h('span', { class: 'nm' }, titleOf(dish, side), sub ? h('small', { class: 'muted', style: 'display:block;font-weight:600', text: sub }) : null));
+  modal({
+    title: `♻️ ${meal}: что доедаем?`,
+    body: h('div', { class: 'pick-list' },
+      h('p', { class: 'muted small', text: 'Вчерашнее блюдо не списывает продукты со склада и не попадает в список покупок.' }),
+      rec.length ? [h('div', { class: 'pick-sub', text: 'Готовили недавно' }), rec.map(r => row(r.dish, r.side, r.from, () => choose(r.dish, r.side)))] : null,
+      item ? [h('div', { class: 'pick-sub', text: 'Запланированное' }), row(item.dish, item.side, 'осталось с прошлого раза', async () => { if (await act('setLeftover', item.id, true)) $('#dlg').close(); })] : null,
+      h('div', { class: 'pick-sub', text: 'Другое блюдо' }),
+      S.dishes.filter(d => d.type !== 'side' && !rec.some(r => r.dish === d.id)).sort(byName).map(d => row(d.id, '', '', () => choose(d.id, '')))),
+    noOk: true, cancelText: 'Закрыть'
+  });
+}
+async function leftoverFor(it) {
+  if (recentCooked(it.day, it.meal).some(r => r.dish === it.dish)) {
+    if (await act('setLeftover', it.id, true)) toast('♻️ Доедаем вчерашнее — склад не трогаем.', 'good');
+  } else leftoverPicker(it.day, it.meal, it);
+}
+
+function chip(st) {
+  if (st.empty) return h('span', { class: 'chip', text: 'Состав не указан' });
+  if (st.ok) return h('span', { class: 'chip ok', text: '✓ Всё есть' });
+  const names = st.lacks.map(i => P(i.product).name);
+  const shown = names.slice(0, 2).join(', ') + (names.length > 2 ? ` и ещё ${names.length - 2}` : '');
+  return h('span', { class: 'chip bad', text: 'Не хватает: ' + shown });
+}
+function needChip(need) {
+  const l = lacksOf(need).map(k => P(k).name);
+  if (!Object.keys(need).length) return h('span', { class: 'chip', text: 'Состав не указан' });
+  if (!l.length) return h('span', { class: 'chip ok', text: '✓ Всё есть' });
+  return h('span', { class: 'chip bad', text: 'Не хватает: ' + l.slice(0, 2).join(', ') + (l.length > 2 ? ` и ещё ${l.length - 2}` : '') });
+}
+function ingPills(dishId, max) {
+  const ings = ingOf(dishId);
+  const shown = max ? ings.slice(0, max) : ings;
+  return h('div', { class: 'pills' }, shown.map(i => {
+    const p = P(i.product);
+    const lack = p.stock + EPS < i.qty;
+    return h('span', { class: 'pill' + (lack ? ' lack' : '') }, emo(p.name), p.name, h('small', { text: qtyStr(conv(i.qty, p.unit, i.unit), i.unit) }));
+  }), ings.length > shown.length ? h('span', { class: 'pill', text: `и ещё ${ings.length - shown.length}` }) : null);
+}
+
+function genDialog() {
+  const sel = new Set(genOpts.meals);
+  const togs = h('div', { class: 'togs' });
+  const drawT = () => togs.replaceChildren(...MEALS.map(m => h('button', { class: 'tog' + (sel.has(m) ? ' on' : ''), type: 'button',
+    onclick: () => { sel.has(m) ? sel.delete(m) : sel.add(m); drawT(); } }, MEAL_EMO[m] + ' ' + m)));
+  drawT();
+  const sides = h('input', { type: 'checkbox', checked: genOpts.sides });
+  const lefts = h('input', { type: 'checkbox', checked: genOpts.leftovers });
+  const only = h('input', { type: 'checkbox', checked: onlyAvail });
+  const doneCnt = (S.plan || []).filter(i => i.done).length;
+  modal({
+    title: '🎲 Составить меню на неделю',
+    body: h('div', { class: 'form' },
+      h('div', {}, h('div', { class: 'muted small', style: 'font-weight:700;margin-bottom:8px', text: 'Какие приёмы пищи планировать' }), togs),
+      h('label', { class: 'check' }, sides, 'Подбирать гарниры к блюдам, которые подаются с гарниром'),
+      h('label', { class: 'check' }, lefts, 'Ставить остатки на следующие дни (для блюд, которых «хватает на 2 раза и больше»)'),
+      h('label', { class: 'check' }, only, 'Только из того, что есть на складе'),
+      h('p', { class: 'muted small', text: doneCnt ? `Уже приготовленное на этой неделе (${doneCnt}) останется, остальное заменится. Салаты добавляются вручную.` : 'Салаты и доп. блюда добавляются вручную в нужный приём пищи.' })),
+    okText: 'Составить',
+    onOk: async () => {
+      if (!sel.size) { toast('Выберите хотя бы один приём пищи.', 'bad'); return false; }
+      genOpts.meals = MEALS.filter(m => sel.has(m)); genOpts.sides = sides.checked; genOpts.leftovers = lefts.checked; onlyAvail = only.checked;
+      return !!(await act('generateWeek', { onlyAvail, meals: genOpts.meals, sides: genOpts.sides, leftovers: genOpts.leftovers }));
+    }
+  });
+}
+
+/* Выбор блюда для приёма пищи: основное или салат / доп. */
+function pickDish(day, meal, kind, item) {
+  const row = d => {
+    const st = status(d.id);
+    return h('button', { class: 'pick-row' + (item && item.dish === d.id ? ' cur' : ''), onclick: async () => {
+      const r = item ? await act('setItem', item.id, d.id) : await act('addItem', day, meal, kind, d.id, onlyAvail);
+      if (r) $('#dlg').close();
+    } }, h('span', { class: 'em', text: emo(d.name, true) }), h('span', { class: 'nm', text: d.name }), chip(st));
+  };
+  let groups;
+  if (kind === 'main') {
+    const fit = mainsFor(meal).sort(byName);
+    const other = S.dishes.filter(d => d.type === 'main' && !d.meals.includes(meal)).sort(byName);
+    groups = [[`Подходит на ${meal.toLowerCase()}`, fit], ['Другие блюда', other]];
+  } else {
+    groups = [['Салаты и доп. блюда', S.dishes.filter(d => d.type === 'extra').sort(byName)],
+      ['Основные блюда', S.dishes.filter(d => d.type === 'main').sort(byName)]];
+  }
+  const body = h('div', { class: 'pick-list' },
+    h('button', { class: 'btn primary wide', onclick: async () => {
+      const r = item ? await act('rerollItem', item.id, onlyAvail) : await act('addItem', day, meal, kind, '', onlyAvail);
+      if (r) $('#dlg').close();
+    } }, '🎲 Случайное' + (onlyAvail ? ' из того, что есть' : '')),
+    groups.filter(g => g[1].length).map(([t, list]) => [h('div', { class: 'pick-sub', text: t }), list.map(row)]));
+  modal({
+    title: `${MEAL_EMO[meal]} ${meal}: ${kind === 'main' ? 'основное блюдо' : 'салат или доп. блюдо'}`,
+    body, noOk: true, cancelText: 'Закрыть',
+    extra: item ? { text: '🗑️ Убрать', cls: 'danger', onClick: async () => { if (await act('removeItem', item.id)) $('#dlg').close(); } } : null
+  });
+}
+
+async function changeSide(it, sideId) {
+  if (it.done && !it.left) {
+    const oldN = needMap('', it.side, itemP(it)), newN = needMap('', sideId, itemP(it));
+    const body = h('div', {},
+      h('p', { text: 'Блюдо уже приготовлено — пересчитаю склад:' }),
+      Object.keys(oldN).length ? h('p', { class: 'small', style: 'margin-top:8px', text: 'Вернётся: ' + Object.keys(oldN).map(k => `${P(k).name} ${qtyNice(oldN[k], P(k).unit)}`).join(', ') }) : null,
+      Object.keys(newN).length ? h('p', { class: 'small', style: 'margin-top:6px', text: 'Спишется: ' + Object.keys(newN).map(k => `${P(k).name} ${qtyNice(newN[k], P(k).unit)}`).join(', ') }) : null);
+    if (!(await confirmBox(body, 'Заменить гарнир', '🔄 Заменить гарнир?'))) { render(); return; }
+  }
+  const st = await act('setSide', it.id, sideId);
+  if (!st) render();
+}
+
+function sideLine(it, d) {
+  const sides = S.dishes.filter(x => x.type === 'side').sort(byName);
+  if (!sides.length) return null;
+  const showSel = it.side || (d && d.withSide) || it._open;
+  if (!showSel) return it.done || it.left ? null : h('button', { class: 'add-side', onclick: () => { it._open = true; render(); } }, '＋ Добавить гарнир');
+  const sel = h('select', { 'aria-label': 'Гарнир', onchange: e => changeSide(it, e.target.value) },
+    h('option', { value: '' }, 'без гарнира'),
+    sides.map(x => h('option', { value: x.id, selected: x.id === it.side }, emo(x.name, true) + ' ' + x.name)));
+  return h('div', { class: 'side' }, h('span', { class: 'side-lbl', text: 'Гарнир' }), sel,
+    h('button', { class: 'icon-act', title: 'Случайный гарнир', 'aria-label': 'Случайный гарнир', onclick: async () => {
+      if (it.done && !it.left && !(await confirmBox('Блюдо уже приготовлено: старый гарнир вернётся на склад, новый спишется.', 'Заменить', '🔄 Заменить гарнир?'))) return;
+      act('rerollSide', it.id, onlyAvail);
+    } }, '🎲'));
+}
+
+async function cookItemFlow(it) {
+  const d = D(it.dish);
+  const main = it.kind === 'main';
+  const opts = await askCook({
+    title: `${emo(d.name, true)} ${it.meal}: готовим?`,
+    intro: `«${titleOf(it.dish, main ? it.side : '')}»`,
+    entries: () => [{ dish: it.dish, side: main ? it.side : '', left: it.left }],
+    mainId: main ? it.dish : null, src: { day: it.day, meal: it.meal }, withLeft: main
+  });
+  if (!opts) return;
+  const st = await act('cookItem', it.id, opts);
+  if (st && !st.notice) toast('Приятного аппетита! Продукты списаны со склада.', 'good');
+}
+
+async function cookMealFlow(day, meal) {
+  const items = planOf(day, meal).filter(i => !i.done && i.dish);
+  const cookedMain = items.find(i => i.kind === 'main' && !i.left);
+  const opts = await askCook({
+    title: `${MEAL_EMO[meal]} ${meal}: отмечаем всё?`,
+    intro: 'Отмечу: ' + items.map(it => titleOf(it.dish, it.kind === 'main' ? it.side : '') + (it.left ? ' (вчерашнее)' : '')).join(', '),
+    entries: () => items.map(it => ({ dish: it.dish, side: it.kind === 'main' ? it.side : '', left: it.left })),
+    mainId: cookedMain ? cookedMain.dish : null, src: { day, meal }, withLeft: !!cookedMain
+  });
+  if (!opts) return;
+  const st = await act('cookMeal', day, meal, opts);
+  if (st && !st.notice) toast('Приятного аппетита!', 'good');
+}
+
+function itemRow(it) {
+  const d = D(it.dish);
+  if (!d) return null;
+  const need = itemNeed(it);
+  const lack = lacksOf(need).length > 0;
+  const canLeft = it.kind === 'main' && LEFT_MEALS.includes(it.meal);
+  const state = it.done ? h('span', { class: 'chip ok', text: it.left ? '✓ Доели вчерашнее' : '✓ Приготовлено' })
+    : it.left ? h('span', { class: 'chip left', text: '♻️ Вчерашнее · склад не трогаем' })
+    : needChip(need);
+  // порции и «хватит на N раз»
+  const extra = [];
+  if (!it.left && it.portions > 0 && it.done) extra.push(h('span', { class: 'chip por', text: `👥 на ${it.portions} порц.` }));
+  if (!it.left && !it.done && defP() > 0) extra.push(h('span', { class: 'chip por', text: `👥 на ${defP()} порц.` }));
+  if (!it.left && it.kind === 'main' && d.times > 1) extra.push(h('span', { class: 'chip times', text: `🔁 хватит на ${d.times} ${timesWord(d.times)}` }));
+  let actions;
+  if (it.done) {
+    actions = h('button', { class: 'btn ghost sm', onclick: async () => {
+      const msg = it.left ? `Снять отметку «доели» с «${d.name}»?` : `Отменить приготовление «${d.name}»? Продукты вернутся на склад.`;
+      if (await confirmBox(msg, 'Отменить', '↩️ Отменить?')) act('undoItem', it.id);
+    } }, '↩️ Отменить');
+  } else if (it.left) {
+    actions = [
+      h('button', { class: 'btn primary sm', onclick: async () => { const st = await act('cookItem', it.id, null); if (st && !st.notice) toast('Приятного аппетита!', 'good'); } }, '✓ Съели'),
+      h('button', { class: 'btn ghost sm', onclick: () => act('setLeftover', it.id, false) }, '👩‍🍳 Буду готовить')
+    ];
+  } else {
+    actions = [
+      h('button', { class: 'btn primary sm', disabled: lack, onclick: () => cookItemFlow(it) }, '👩‍🍳 Готовить'),
+      canLeft ? h('button', { class: 'btn leftbtn sm', onclick: () => leftoverFor(it) }, '♻️ Вчерашнее') : null
+    ];
+  }
+  return h('div', { class: 'item' + (it.done ? ' done' : '') + (it.left && !it.done ? ' left' : '') },
+    h('div', { class: 'item-main' },
+      h('div', { class: 'item-emo', text: emo(d.name, true) }),
+      h('div', { class: 'item-body' },
+        h('div', { class: 'item-name' }, it.kind === 'extra' ? h('span', { class: 'kind', text: 'доп' }) : null, d.name),
+        state, extra.length ? h('div', { class: 'chips-row' }, extra) : null),
+      it.done ? null : h('div', { class: 'item-tools' },
+        h('button', { class: 'icon-act', title: 'Заменить случайным', 'aria-label': 'Заменить случайным', onclick: () => act('rerollItem', it.id, onlyAvail) }, '🎲'),
+        h('button', { class: 'icon-act', title: 'Выбрать другое', 'aria-label': 'Выбрать другое блюдо', onclick: () => pickDish(it.day, it.meal, it.kind, it) }, '✏️'))),
+    it.kind === 'main' ? sideLine(it, d) : null,
+    h('div', { class: 'item-actions' }, actions));
+}
+
+function mealCard(day, meal) {
+  const items = planOf(day, meal);
+  const main = items.find(i => i.kind === 'main');
+  const extras = items.filter(i => i.kind === 'extra');
+  const pending = items.filter(i => !i.done && i.dish);
+  const allDone = items.length > 0 && !pending.length;
+  const need = {};
+  pending.forEach(it => { const n = itemNeed(it); Object.keys(n).forEach(k => { need[k] = (need[k] || 0) + n[k]; }); });
+  return h('div', { class: 'meal' + (allDone ? ' done' : '') },
+    h('div', { class: 'meal-head' },
+      h('span', { class: 'meal-ico', text: MEAL_EMO[meal] }), h('h3', { text: meal }),
+      allDone ? h('span', { class: 'chip ok', text: '✓ Готово' })
+        : pending.length > 1 ? h('button', { class: 'btn primary sm', disabled: lacksOf(need).length > 0, onclick: () => cookMealFlow(day, meal) }, pending.every(i => i.left) ? 'Съели всё' : 'Готовить всё') : null),
+    main ? itemRow(main) : h('div', { class: 'meal-empty', text: 'Основное блюдо не выбрано' }),
+    !main && LEFT_MEALS.includes(meal) ? recentCooked(day, meal).slice(0, 2).map(r => h('button', { class: 'sugg', onclick: () => act('addLeftover', day, meal, r.dish, r.side) },
+      h('span', { class: 'em', text: '♻️' }), h('span', {}, 'Доесть: ' + titleOf(r.dish, r.side), h('small', { text: 'готовили ' + r.from + ' · склад не трогаем' })))) : null,
+    extras.map(itemRow),
+    h('div', { class: 'meal-foot' },
+      main ? null : h('button', { class: 'btn sm', onclick: () => pickDish(day, meal, 'main') }, '＋ Блюдо'),
+      !main && LEFT_MEALS.includes(meal) ? h('button', { class: 'btn leftbtn sm', onclick: () => leftoverPicker(day, meal, null) }, '♻️ Вчерашнее') : null,
+      h('button', { class: 'btn ghost sm', onclick: () => pickDish(day, meal, 'extra') }, '＋ Салат / доп.')));
+}
+
+function renderWeek(v) {
+  const ws = S.settings.weekStart ? parseDate(S.settings.weekStart) : mondayDate();
+  const ti = todayIdx();
+  if (selDay == null) selDay = ti >= 0 ? ti + 1 : 1;
+  v.append(h('div', { class: 'toolbar' },
+    h('div', { class: 'grow' },
+      h('h2', { text: 'Меню на неделю' }),
+      h('div', { class: 'muted', text: `${ws.getDate()} ${MONTHS[ws.getMonth()]} – ${addDays(ws, 6).getDate()} ${MONTHS[addDays(ws, 6).getMonth()]}` })),
+    h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: onlyAvail, onchange: e => { onlyAvail = e.target.checked; } }), 'Только из того, что есть'),
+    h('button', { class: 'btn primary gen-btn', onclick: genDialog }, '🎲 Составить меню')));
+
+  const news = newsCard();
+  if (news) v.append(news);
+  if (!S.dishes.some(d => d.type === 'main')) {
+    v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🍲' }), 'Добавьте основные блюда на вкладке «Блюда» — из них будет собрано меню.'));
+    return;
+  }
+  if (S.settings.weekStart && parseDate(S.settings.weekStart) < mondayDate()) {
+    v.append(h('div', { class: 'stale' }, h('span', { text: '🗓️ Это меню прошлой недели. Составим новое?' }),
+      h('button', { class: 'btn primary sm', onclick: genDialog }, '🎲 Составить')));
+  }
+
+  const plan = S.plan || [];
+  const can = S.dishes.filter(d => d.type === 'main' && status(d.id).ok && !status(d.id).empty).length;
+  v.append(h('div', { class: 'stats' },
+    h('div', { class: 'stat' }, h('div', { class: 'si a', text: '👩‍🍳' }), h('div', {}, h('b', { text: `${can} из ${S.dishes.filter(d => d.type === 'main').length}` }), h('span', { class: 'l', text: 'основных блюд можно приготовить' }))),
+    h('div', { class: 'stat' }, h('div', { class: 'si b', text: '🛒' }), h('div', {}, h('b', { text: S.products.filter(isLow).length }), h('span', { class: 'l', text: 'продуктов на исходе' }))),
+    h('div', { class: 'stat' }, h('div', { class: 'si c', text: '✅' }), h('div', {}, h('b', { text: `${plan.filter(i => i.done).length} из ${plan.filter(i => i.dish).length}` }), h('span', { class: 'l', text: 'блюд приготовлено' })))));
+
+  // полоска дней
+  v.append(h('div', { class: 'daystrip' }, [1, 2, 3, 4, 5, 6, 7].map(day => {
+    const date = addDays(ws, day - 1);
+    return h('button', { class: 'dchip' + (day === selDay ? ' on' : '') + (day - 1 === ti ? ' today' : ''), onclick: () => { selDay = day; render(); } },
+      h('span', { class: 'dn', text: day - 1 === ti ? 'сег.' : DAYS[date.getDay()] }),
+      h('span', { class: 'dd', text: date.getDate() }),
+      h('span', { class: 'dots' }, MEALS.map(m => {
+        const it = planOf(day, m);
+        return h('i', { class: !it.length ? '' : it.every(x => x.done) ? 'd' : it.some(x => x.left) ? 'l' : 'p' });
+      })));
+  })));
+  v.append(h('div', { class: 'legend' },
+    h('span', {}, h('i', { style: 'background:var(--ok)' }), 'готово'),
+    h('span', {}, h('i', { style: 'background:#b9aef0' }), 'запланировано'),
+    h('span', {}, h('i', { style: 'background:#5fb8c6' }), 'вчерашнее')));
+
+  const date = addDays(ws, selDay - 1);
+  v.append(h('div', { class: 'day-title' },
+    h('span', { class: 'hand', text: selDay - 1 === ti ? 'Сегодня' : selDay - 1 === ti + 1 ? 'Завтра' : DAYS_FULL[date.getDay()] }),
+    h('span', { class: 'muted', text: `${DAYS_FULL[date.getDay()].toLowerCase()}, ${date.getDate()} ${MONTHS[date.getMonth()]}` })));
+  v.append(h('div', { class: 'meals' }, MEALS.map(m => mealCard(selDay, m))));
+
+  const list = shoppingList();
+  let total = 0, priced = 0;
+  list.forEach(r => { if (r.cost != null) { total += r.cost; priced++; } });
+  v.append(h('section', { class: 'block' },
+    h('div', { class: 'sec-head' },
+      h('h3', { text: '🛒 Список покупок на неделю' }),
+      list.length ? h('button', { class: 'btn sm', onclick: exportShopping }, '⬇️ В Excel') : null),
+    list.length
+      ? h('div', { class: 'list' },
+          list.map(r => h('div', { class: 'lrow' },
+            h('span', { class: 'em', text: emo(r.p.name) }),
+            h('div', { class: 'nm' }, r.p.name,
+              h('small', { text: (r.short ? `на меню ${qtyNice(r.need, r.p.unit)}, есть ${qtyNice(r.p.stock, r.p.unit)}` : `запас на исходе, есть ${qtyNice(r.p.stock, r.p.unit)}`) + (r.cost != null ? `, ≈ ${money(r.cost)}` : '') })),
+            h('span', { class: 'to', text: r.buy > 0 ? '+ ' + qtyNice(r.buy, r.p.unit) : 'купить' }))),
+          priced ? h('div', { class: 'total-row' }, h('span', { text: 'Примерно на сумму' }), h('span', { text: money(total) })) : null)
+      : h('div', { class: 'happy', text: '🎉 Всего хватает — докупать ничего не нужно!' })));
+
+}
+
+/* ───── Склад ───── */
+function productForm(p) {
+  const name = h('input', { type: 'text', value: p ? p.name : '', placeholder: 'Например, Мука', enterkeyhint: 'next' });
+  const unit = unitSelect(UNITS, p ? p.unit : 'КГ');
+  const stock = numInput(p ? numOut(p.stock) : '', '0');
+  const min = numInput(p ? numOut(p.min) : '', '0');
+  let prevU = unit.value;
+  unit.addEventListener('change', () => {
+    const nu = unit.value;
+    if (sameFam(prevU, nu)) {
+      [stock, min].forEach(inp => { const v = toNum(inp.value); if (v != null) inp.value = numOut(conv(v, prevU, nu)); });
+    } else if (p && S.ing.some(i => i.product === p.id)) {
+      toast('Это единица другого типа: количества в рецептах не пересчитаются, проверьте их после сохранения.', 'bad');
+    }
+    prevU = nu;
+  });
+  const total = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', placeholder: 'необязательно' });
+  modal({
+    title: p ? '✏️ Изменить продукт' : '🧺 Новый продукт',
+    body: h('div', { class: 'form' },
+      field('Название', name),
+      h('div', { class: 'row2' }, field('Единица', unit), field('Сейчас на складе', stock)),
+      field('Когда пора докупать', min, '— минимальный остаток'),
+      p ? null : field('Сколько заплатили, ₸', total, '— для аналитики цен')),
+    extra: p ? { text: '🗑️ Удалить', cls: 'danger', onClick: () => delProduct(p) } : null,
+    onOk: async () => !!(await act('saveProduct', { id: p ? p.id : '', name: name.value, unit: unit.value, stock: stock.value, min: min.value, total: p ? '' : total.value }))
+  });
+}
+
+function restockForm(p) {
+  const amount = numInput('', '0');
+  amount.setAttribute('aria-label', 'Сколько купили');
+  const unit = unitSelect(famOf(p.unit), p.unit);
+  const total = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', placeholder: 'необязательно' });
+  const lp = lastPrice(p.id);
+  const hint = lp != null ? `В прошлый раз: ${priceStr(lp, p.unit)}` : 'Укажите сумму — посчитаю цену за ' + perLbl(p.unit);
+  const calc = h('div', { class: 'calc', text: hint });
+  const upd = () => {
+    const a = toNum(amount.value), t = toNum(total.value);
+    if (!(a > 0)) { calc.textContent = hint; return; }
+    const inP = conv(a, unit.value, p.unit);
+    let txt = `Станет на складе: ${qtyNice(p.stock + inP, p.unit)}`;
+    if (t > 0) {
+      const ps = t / (a * (FACT[unit.value] || 1));
+      txt += `\nЦена: ${priceStr(ps, p.unit)}`;
+      if (lp != null) {
+        const d = (ps - lp) / lp * 100;
+        txt += Math.abs(d) < 0.5 ? ', как в прошлый раз' : d > 0 ? `, дороже на ${Math.round(d)}%` : `, дешевле на ${Math.round(-d)}%`;
+      }
+    }
+    calc.textContent = txt;
+  };
+  [amount, total].forEach(x => x.addEventListener('input', upd));
+  unit.addEventListener('change', upd);
+  calc.style.whiteSpace = 'pre-line';
+  modal({
+    title: `${emo(p.name)} Приход: ${p.name}`,
+    body: h('div', { class: 'form' },
+      h('p', { class: 'muted', text: 'Сейчас на складе: ' + qtyNice(p.stock, p.unit) }),
+      field('Сколько купили', withUnit(amount, unit)),
+      field('Заплатили, ₸', total),
+      calc),
+    okText: 'Добавить на склад',
+    onOk: async () => {
+      if (!(toNum(amount.value) > 0)) { toast('Введите количество больше нуля.', 'bad'); return false; }
+      return !!(await act('adjustStock', p.id, amount.value, total.value, unit.value));
+    }
+  });
+}
+
+async function delProduct(p) {
+  const used = S.ing.filter(i => i.product === p.id).length;
+  const msg = `Удалить продукт «${p.name}»?` + (used ? ` Он пропадёт из состава блюд (${used}).` : '');
+  if (await confirmBox(msg, 'Удалить', '🗑️ Удаляем?')) act('deleteProduct', p.id);
+}
+
+function tile(p) {
+  const cls = p.stock <= 0 ? 'zero' : isLow(p) ? 'low' : '';
+  const cap = p.min > 0 ? p.min * 3 : Math.max(p.stock, 1);
+  const pct = p.stock <= 0 ? 4 : Math.max(8, Math.min(100, p.stock / cap * 100));
+  const lp = lastPrice(p.id);
+  return h('div', { class: 'tile ' + (cls ? cls + 't' : '') },
+    h('div', { class: 'tile-top' },
+      h('div', { class: 'em-badge', text: emo(p.name) }),
+      h('div', {}, h('h3', { text: p.name }),
+        p.stock <= 0 ? h('span', { class: 'chip bad', text: 'Закончился' })
+          : isLow(p) ? h('span', { class: 'chip warn', text: 'Пора докупить' })
+          : h('span', { class: 'chip ok', text: 'В наличии' }))),
+    h('div', { class: 'amount' }, fmt(p.stock), h('small', { text: UNIT_LBL[p.unit] })),
+    nice(p.stock, p.unit)[1] !== p.unit ? h('div', { class: 'amount-alt', text: '= ' + qtyNice(p.stock, p.unit) }) : null,
+    h('div', { class: 'bar ' + cls }, h('i', { style: `width:${pct}%` })),
+    h('div', { class: 'tile-foot' }, h('span', { text: 'мин. ' + qtyNice(p.min, p.unit) }), lp != null ? h('span', { text: priceStr(lp, p.unit) }) : null),
+    h('div', { class: 'tile-actions' },
+      h('button', { class: 'btn sm', onclick: () => restockForm(p) }, '＋ Приход'),
+      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + p.name, onclick: () => productForm(p) }, '✏️')));
+}
+
+function drawStock(host) {
+  host.replaceChildren();
+  const qs = q.stock.trim().toLowerCase();
+  const list = S.products.filter(p => (!qs || p.name.toLowerCase().includes(qs)) &&
+    (stockFilter === 'all' || (stockFilter === 'low' ? isLow(p) : p.stock <= 0)))
+    .sort((a, b) => (isLow(b) - isLow(a)) || byName(a, b));
+  if (!list.length) {
+    host.className = '';
+    host.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: S.products.length ? '🔍' : '🧺' }),
+      S.products.length ? 'Ничего не найдено.' : 'На складе пока пусто. Добавьте продукт или загрузите список из Excel.'));
+    return;
+  }
+  host.className = 'tiles';
+  list.forEach(p => host.append(tile(p)));
+}
+
+function renderStock(v) {
+  const host = h('div');
+  const low = S.products.filter(isLow).length, zero = S.products.filter(p => p.stock <= 0).length;
+  const chips = h('div', { class: 'scroller' });
+  const drawChips = () => {
+    chips.replaceChildren(...[['all', `Все (${S.products.length})`], ['low', `Пора докупить (${low})`], ['zero', `Закончились (${zero})`]]
+      .map(([k, t]) => h('button', { class: 'fchip' + (stockFilter === k ? ' on' : ''), onclick: () => { stockFilter = k; drawChips(); drawStock(host); } }, t)));
+  };
+  drawChips();
+  v.append(h('div', { class: 'toolbar' },
+    h('div', { class: 'grow' }, h('h2', { text: 'Склад' }), h('div', { class: 'muted', text: 'Что есть на кухне и сколько осталось' })),
+    h('input', { type: 'search', placeholder: '🔍 Найти продукт', value: q.stock, 'aria-label': 'Поиск продукта', oninput: e => { q.stock = e.target.value; drawStock(host); } }),
+    h('button', { class: 'btn primary desk', onclick: () => productForm(null) }, '＋ Добавить продукт')));
+  v.append(h('div', { class: 'actions-row' },
+    h('button', { class: 'btn sm', onclick: pickExcel }, '📥 Загрузить из Excel'),
+    h('button', { class: 'btn sm', onclick: exportShopping }, '🛒 Список покупок'),
+    h('button', { class: 'btn sm', onclick: downloadTemplate }, '📄 Бланк склада')));
+  v.append(h('p', { class: 'muted small', style: 'margin:-6px 0 14px', text: 'Скачайте список или бланк, впишите «Куплено» и «Сумма» и загрузите тот же файл обратно.' }));
+  v.append(chips, host);
+  drawStock(host);
+  v.append(h('button', { class: 'fab', onclick: () => productForm(null) }, h('b', { text: '＋' }), 'Продукт'));
+}
+
+/* ───── Блюда ───── */
+function ingRow(item) {
+  const nameIn = h('input', { type: 'text', list: 'plist', placeholder: 'Продукт', value: item.name || '', 'aria-label': 'Продукт' });
+  const qty = numInput(item.qty != null ? numOut(item.qty) : '', 'Сколько');
+  qty.setAttribute('aria-label', 'Количество');
+  const unitSel = h('select', { class: 'unit-sel', 'aria-label': 'Единица' });
+  let famKey = null;
+  const find = () => S.products.find(p => p.name.toLowerCase() === nameIn.value.trim().toLowerCase());
+  const sync = () => {
+    const p = find();
+    const units = p ? famOf(p.unit) : UNITS;
+    const key = units.join();
+    if (key === famKey) return;
+    const cur = unitSel.value || item.unit || (p ? p.unit : 'КГ');
+    unitSel.replaceChildren(...units.map(u => h('option', { value: u }, UNIT_LBL[u])));
+    unitSel.value = units.includes(cur) ? cur : (p ? p.unit : units[0]);
+    famKey = key;
+  };
+  nameIn.addEventListener('input', sync);
+  const row = h('div', { class: 'ing-row' }, nameIn, qty, unitSel,
+    h('button', { class: 'icon-btn', type: 'button', title: 'Убрать', 'aria-label': 'Убрать из состава', onclick: () => row.remove() }, '×'));
+  sync();
+  row.read = () => {
+    const p = find();
+    return p ? { product: p.id, qty: qty.value, unit: unitSel.value } : { product: '', newName: nameIn.value.trim(), unit: unitSel.value, qty: qty.value };
+  };
+  return row;
+}
+
+function dishForm(d) {
+  const name = h('input', { type: 'text', value: d ? d.name : '', placeholder: 'Например, Борщ' });
+  const note = h('input', { type: 'text', value: d ? d.note : '', placeholder: 'Необязательно' });
+  let type = d ? d.type : (dishFilter === 'side' || dishFilter === 'extra' ? dishFilter : 'main');
+  const meals = new Set(d ? d.meals : ['Обед', 'Ужин']);
+  const withSide = h('input', { type: 'checkbox', checked: d ? d.withSide : false });
+  const portionsIn = h('input', { type: 'number', step: 'any', min: '1', max: '100', inputmode: 'decimal', placeholder: String(DEF_PORTIONS), value: d && d.portions > 0 ? d.portions : '' });
+  const timesStep = stepper(d ? d.times || 1 : 1, { min: 1, max: 7, label: 'Хватает на, раз' });
+  const seg = h('div', { class: 'seg' });
+  const togs = h('div', { class: 'togs' });
+  const mainOpts = h('div', { class: 'form' },
+    field('Когда подавать', togs),
+    h('label', { class: 'check' }, withSide, 'Подаётся с гарниром (пюре, рис, гречка…)'),
+    field('Хватает на, раз', timesStep, '— суп, плов: после готовки остатки сами встанут на следующие дни как «вчерашнее»'));
+  const drawSeg = () => {
+    seg.replaceChildren(...['main', 'side', 'extra'].map(t => h('button', { type: 'button', class: type === t ? 'on' : '', onclick: () => { type = t; drawSeg(); } }, TYPE_LBL[t])));
+    mainOpts.hidden = type !== 'main';
+  };
+  const drawT = () => togs.replaceChildren(...MEALS.map(m => h('button', { type: 'button', class: 'tog' + (meals.has(m) ? ' on' : ''),
+    onclick: () => { meals.has(m) ? meals.delete(m) : meals.add(m); drawT(); } }, MEAL_EMO[m] + ' ' + m)));
+  drawSeg(); drawT();
+  const rows = h('div');
+  const dl = h('datalist', { id: 'plist' }, [...S.products].sort(byName).map(p => h('option', { value: p.name }, UNIT_LBL[p.unit])));
+  const existing = d ? ingOf(d.id).map(i => ({ name: P(i.product).name, qty: conv(i.qty, P(i.product).unit, i.unit), unit: i.unit })) : [];
+  (existing.length ? existing : [{}]).forEach(i => rows.append(ingRow(i)));
+  modal({
+    title: d ? '✏️ Изменить блюдо' : '🍲 Новое блюдо',
+    wide: true,
+    body: h('div', { class: 'form' },
+      dl,
+      field('Название', name),
+      field('Тип блюда', seg),
+      field('Рецепт рассчитан на, порций', portionsIn, `— пусто: считаем ${DEF_PORTIONS}`),
+      mainOpts,
+      field('Заметка', note),
+      h('div', {},
+        h('div', { class: 'muted small', style: 'margin-bottom:10px;font-weight:600', text: 'Что нужно на одну готовку (на указанное число порций; при готовке можно выбрать другое — всё пересчитается). Выберите продукт из списка или впишите новый — он появится на складе. Единицы пересчитываются сами: можно писать 250 г, даже если продукт считается в кг.' }),
+        rows,
+        h('button', { class: 'btn sm', type: 'button', onclick: () => { const r = ingRow({}); rows.append(r); r.querySelector('input').focus(); } }, '＋ Ещё продукт'))),
+    extra: d ? { text: '🗑️ Удалить', cls: 'danger', onClick: () => delDish(d) } : null,
+    onOk: async () => {
+      if (type === 'main' && !meals.size) { toast('Выберите, когда подавать блюдо.', 'bad'); return false; }
+      const ingredients = [...rows.children].map(r => r.read()).filter(i => (i.product || i.newName) && toNum(i.qty) > 0);
+      const pv = String(portionsIn.value).trim();
+      if (pv !== '' && !(toNum(pv) >= 1 && toNum(pv) <= 100)) { toast('Порций в рецепте — от 1 до 100 (или оставьте пустым).', 'bad'); return false; }
+      return !!(await act('saveDish', { id: d ? d.id : '', name: name.value, note: note.value, type, meals: [...meals], withSide: withSide.checked,
+        portions: pv, times: type === 'main' ? timesStep.get() : 1, ingredients }));
+    }
+  });
+}
+
+async function delDish(d) {
+  if (await confirmBox(`Удалить блюдо «${d.name}»? Оно пропадёт и из меню недели.`, 'Удалить', '🗑️ Удаляем?')) act('deleteDish', d.id);
+}
+
+/* Приготовить вне меню; к основному блюду можно выбрать гарнир */
+async function cookFlow(dish) {
+  const sides = S.dishes.filter(x => x.type === 'side').sort(byName);
+  const sel = dish.type === 'main' && sides.length ? h('select', {}, h('option', { value: '' }, 'без гарнира'),
+    sides.map(x => h('option', { value: x.id }, emo(x.name, true) + ' ' + x.name))) : null;
+  const ti = todayIdx();
+  const withLeft = dish.type !== 'side' && ti >= 0;
+  const opts = await askCook({
+    title: `${emo(dish.name, true)} ${dish.name}: готовим?`,
+    intro: sel ? null : `«${dish.name}»`,
+    entries: () => [{ dish: dish.id, side: sel ? sel.value : '', left: false }],
+    mainId: dish.id, src: withLeft ? { day: ti + 1, meal: guessMeal() } : null, withLeft,
+    watch: sel ? [sel] : [], lead: sel ? field('Гарнир', sel) : null
+  });
+  if (!opts) return;
+  const st = await act('cookDish', dish.id, sel ? sel.value : '', opts);
+  if (st && !st.notice) toast('Приятного аппетита! Продукты списаны со склада.', 'good');
+}
+
+function dishCard(d) {
+  const st = status(d.id);
+  const ings = ingOf(d.id);
+  const c = dishCost(d.id);
+  const meta = d.type === 'main' ? d.meals.join(', ').toLowerCase() + (d.withSide ? ' · с гарниром' : '') : '';
+  const per = dishP(d.id);
+  return h('article', { class: 'card' },
+    h('div', { class: 'dish-top' },
+      h('div', { class: 'em-badge', text: emo(d.name, true) }),
+      h('div', { class: 'meta' }, h('span', { class: 'type-tag', text: TYPE_LBL[d.type] + (meta ? ': ' + meta : '') }), h('h3', { text: d.name }), chip(st),
+        h('div', { class: 'chips-row' },
+          h('span', { class: 'chip por', text: `👥 рецепт на ${per} порц.` + (d.portions > 0 ? '' : ' (по умолч.)') }),
+          d.times > 1 ? h('span', { class: 'chip times', text: `🔁 хватает на ${d.times} ${timesWord(d.times)}` }) : null),
+        c.sum > 0 ? h('span', { class: 'cost', text: `≈ ${money(c.sum)} за готовку` + ` (≈ ${money(c.sum / per)} за порцию)` + (c.missing ? `, без цены: ${c.missing}` : '') }) : null)),
+    d.note ? h('p', { class: 'muted', text: d.note }) : null,
+    ings.length ? ingPills(d.id) : h('p', { class: 'muted', text: 'Добавьте продукты в состав.' }),
+    h('div', { class: 'actions' },
+      h('button', { class: 'btn primary sm', disabled: !st.ok, onclick: () => cookFlow(d) }, '👩‍🍳 Приготовить'),
+      h('button', { class: 'icon-act', title: 'Состав в матрице', 'aria-label': 'Показать в матрице', onclick: () => { mDish = d.id; tab = 'matrix'; render(); } }, '🧮'),
+      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + d.name, onclick: () => dishForm(d) }, '✏️')));
+}
+
+function drawDishes(host) {
+  host.replaceChildren();
+  const qs = q.dishes.trim().toLowerCase();
+  const list = S.dishes.filter(d => (!qs || d.name.toLowerCase().includes(qs)) &&
+    (dishFilter === 'all' || (dishFilter === 'can' ? (status(d.id).ok && !status(d.id).empty) : d.type === dishFilter))).sort(byName);
+  if (!list.length) {
+    host.className = '';
+    host.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: S.dishes.length ? '🔍' : '🍲' }), S.dishes.length ? 'Ничего не найдено.' : 'Блюд пока нет. Добавьте первое.'));
+    return;
+  }
+  host.className = 'dishes';
+  list.forEach(d => host.append(dishCard(d)));
+}
+
+function renderDishes(v) {
+  const host = h('div');
+  const cnt = t => S.dishes.filter(d => d.type === t).length;
+  const can = S.dishes.filter(d => { const s = status(d.id); return s.ok && !s.empty; }).length;
+  const chips = h('div', { class: 'scroller' });
+  const drawChips = () => {
+    chips.replaceChildren(...[['all', `Все (${S.dishes.length})`], ['main', `Основные (${cnt('main')})`], ['side', `Гарниры (${cnt('side')})`],
+      ['extra', `Салаты и доп. (${cnt('extra')})`], ['can', `Можно приготовить (${can})`]]
+      .map(([k, t]) => h('button', { class: 'fchip' + (dishFilter === k ? ' on' : ''), onclick: () => { dishFilter = k; drawChips(); drawDishes(host); } }, t)));
+  };
+  drawChips();
+  v.append(h('div', { class: 'toolbar' },
+    h('div', { class: 'grow' }, h('h2', { text: 'Блюда' }), h('div', { class: 'muted', text: 'Основные блюда, гарниры, салаты — и из чего они готовятся' })),
+    h('input', { type: 'search', placeholder: '🔍 Найти блюдо', value: q.dishes, 'aria-label': 'Поиск блюда', oninput: e => { q.dishes = e.target.value; drawDishes(host); } }),
+    h('button', { class: 'btn primary desk', onclick: () => dishForm(null) }, '＋ Добавить блюдо')));
+  v.append(chips, host);
+  drawDishes(host);
+  v.append(h('button', { class: 'fab', onclick: () => dishForm(null) }, h('b', { text: '＋' }), 'Блюдо'));
+}
+
+/* ───── Матрица ───── */
+async function setCell(dishId, productId, input) {
+  const old = input._old || '';
+  try {
+    document.body.classList.add('busy');
+    S = await call('setIngredient', dishId, productId, input.value, input.dataset.u);
+    input._old = input.value;
+    updateMatrixMarks();
+    renderBanner();
+  } catch (e) {
+    input.value = old;
+    toast(cleanErr(e), 'bad');
+  } finally {
+    document.body.classList.remove('busy');
+  }
+}
+
+function updateMatrixMarks() {
+  document.querySelectorAll('.matrix tbody input').forEach(inp => {
+    const p = P(inp.dataset.p);
+    const val = toNum(inp.value);
+    inp.classList.toggle('short', val != null && val > 0 && !!p && conv(val, inp.dataset.u, p.unit) > p.stock + EPS);
+  });
+  document.querySelectorAll('.matrix tr[data-d]').forEach(tr => {
+    const st = status(tr.dataset.d);
+    tr.querySelector('.dot').className = 'dot ' + (st.empty ? '' : st.ok ? 'ok' : 'bad');
+  });
+}
+
+function renderMatrix(v) {
+  if (mDish && !D(mDish)) mDish = null;
+  v.append(h('div', { class: 'toolbar' },
+    h('div', { class: 'grow' }, h('h2', { text: 'Матрица' }),
+      h('div', { class: 'muted', text: 'Нажмите на блюдо — останутся только его продукты. В ячейке количество на одну готовку.' })),
+    h('button', { class: 'btn desk', onclick: () => dishForm(null) }, '＋ Блюдо'),
+    h('button', { class: 'btn desk', onclick: () => productForm(null) }, '＋ Продукт')));
+  if (!S.dishes.length || !S.products.length) {
+    v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🧮' }), 'Матрица появится, когда будет хотя бы одно блюдо и один продукт.'));
+    return;
+  }
+  const dishes = [...S.dishes].sort(byName);
+  v.append(h('div', { class: 'scroller' },
+    h('button', { class: 'fchip' + (!mDish ? ' on' : ''), onclick: () => { mDish = null; render(); } }, 'Все блюда'),
+    dishes.map(d => h('button', { class: 'fchip' + (mDish === d.id ? ' on' : ''), onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } }, emo(d.name, true) + ' ' + d.name))));
+
+  let prods = [...S.products].sort(byName);
+  if (mDish) {
+    const d = D(mDish);
+    const need = ingOf(mDish).map(i => i.product);
+    prods = prods.filter(p => need.includes(p.id));
+    v.append(h('div', { class: 'filter-note' },
+      h('span', { text: `${emo(d.name, true)} ${d.name}: продуктов в составе ${prods.length}` }),
+      h('button', { class: 'btn sm', onclick: () => dishForm(d) }, '✏️ Состав'),
+      h('button', { class: 'btn sm', onclick: () => { mDish = null; render(); } }, 'Показать все')));
+    if (!prods.length) {
+      v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🥄' }), 'У блюда пока нет продуктов. Нажмите «Состав», чтобы добавить.'));
+      return;
+    }
+  }
+  const order = mDish ? [D(mDish)].concat(dishes.filter(d => d.id !== mDish)) : dishes;
+  const tbody = h('tbody');
+  order.forEach(d => {
+    const tr = h('tr', { 'data-d': d.id, class: mDish === d.id ? 'sel' : '' },
+      h('th', { class: 'rowh' }, h('button', { class: 'rowbtn', title: 'Показать только продукты этого блюда', onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } },
+        h('span', { class: 'dot' }), emo(d.name, true) + ' ' + d.name)));
+    prods.forEach(p => {
+      const i = S.ing.find(x => x.dish === d.id && x.product === p.id);
+      const u = i ? i.unit : p.unit;
+      const shown = i ? numOut(conv(i.qty, p.unit, i.unit)) : '';
+      const inp = h('input', {
+        type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: shown,
+        'data-p': p.id, 'data-u': u, 'aria-label': `${d.name}: ${p.name}, ${UNIT_LBL[u]}`,
+        onchange: e => setCell(d.id, p.id, e.target)
+      });
+      inp._old = shown;
+      tr.append(h('td', {}, inp, i ? h('small', { class: 'cu', text: UNIT_LBL[u] }) : null));
+    });
+    tbody.append(tr);
+  });
+  const tfoot = h('tfoot', {}, h('tr', {}, h('th', { class: 'rowh', text: '🧺 На складе' }),
+    prods.map(p => h('td', { class: isLow(p) ? 'lowc' : '', text: fmt(p.stock) }))));
+  v.append(h('div', { class: 'tablewrap' }, h('table', { class: 'matrix' },
+    h('thead', {}, h('tr', {}, h('th', { class: 'rowh', text: 'Блюдо' }),
+      prods.map(p => h('th', {}, h('span', { class: 'em', text: emo(p.name) }), p.name, h('small', { text: UNIT_LBL[p.unit] }))))),
+    tbody, tfoot)));
+  updateMatrixMarks();
+}
+
+/* ───── Цены и расходы ───── */
+function sparkSvg(vals, w, hh, big) {
+  const mn = Math.min(...vals), mx = Math.max(...vals), span = (mx - mn) || 1, pad = big ? 14 : 3;
+  const pts = vals.map((v, i) => [pad + i * (w - 2 * pad) / Math.max(1, vals.length - 1), hh - pad - (v - mn) / span * (hh - 2 * pad)]);
+  const line = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const up = vals[vals.length - 1] > vals[0];
+  const col = vals.length < 2 || vals[vals.length - 1] === vals[0] ? '#746c88' : up ? '#cf3350' : '#23825a';
+  const area = `${pts[0][0].toFixed(1)},${hh} ${line} ${pts[pts.length - 1][0].toFixed(1)},${hh}`;
+  const dots = big ? pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#fff" stroke="${col}" stroke-width="2.5"/>`).join('') : '';
+  return `<svg viewBox="0 0 ${w} ${hh}" ${big ? '' : `width="${w}" height="${hh}"`} aria-hidden="true"><polygon points="${area}" fill="${col}" opacity=".1"/><polyline points="${line}" fill="none" stroke="${col}" stroke-width="${big ? 3 : 2.2}" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+}
+
+function trendOf(arr) {
+  if (arr.length < 2) return null;
+  const a = arr[arr.length - 2].ps, b = arr[arr.length - 1].ps;
+  return (b - a) / a * 100;
+}
+function trendChip(t) {
+  if (t == null) return h('span', { class: 'trend flat', text: 'одна покупка' });
+  if (Math.abs(t) < 0.5) return h('span', { class: 'trend flat', text: '= без изменений' });
+  return h('span', { class: 'trend ' + (t > 0 ? 'up' : 'down'), text: (t > 0 ? '↑ +' : '↓ −') + Math.round(Math.abs(t)) + '%' });
+}
+
+function priceDetail(p) {
+  const arr = pricesOf(p.id);
+  const vals = arr.map(x => dispPrice(x.ps, p.unit));
+  const avg = vals.reduce((s, x) => s + x, 0) / vals.length;
+  const all = (S.purchases || []).filter(x => x.product === p.id).sort((a, b) => b.when.localeCompare(a.when));
+  const spent = all.reduce((s, x) => s + (x.total || 0), 0);
+  modal({
+    title: `${emo(p.name)} ${p.name}`,
+    wide: true,
+    body: h('div', { class: 'form' },
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('div', {}, h('b', { text: money(vals[vals.length - 1]) }), h('span', { class: 'l', text: 'последняя цена за ' + perLbl(p.unit) }))),
+        h('div', { class: 'stat' }, h('div', {}, h('b', { text: money(avg) }), h('span', { class: 'l', text: `средняя, от ${money(Math.min(...vals))} до ${money(Math.max(...vals))}` }))),
+        h('div', { class: 'stat' }, h('div', {}, h('b', { text: money(spent) }), h('span', { class: 'l', text: 'потрачено всего' })))),
+      vals.length > 1 ? h('div', { class: 'bigchart', html: sparkSvg(vals, 600, 180, true) }) : null,
+      h('div', { class: 'tablewrap' }, h('table', { class: 'hist' },
+        h('thead', {}, h('tr', {}, h('th', { text: 'Дата' }), h('th', { class: 'num', text: 'Купили' }), h('th', { class: 'num', text: 'Сумма' }), h('th', { class: 'num', text: 'За ' + perLbl(p.unit) }))),
+        h('tbody', {}, all.map(x => h('tr', {},
+          h('td', { text: x.when.slice(8, 10) + '.' + x.when.slice(5, 7) + '.' + x.when.slice(2, 4) }),
+          h('td', { class: 'num', text: qtyStr(x.qty, x.unit) }),
+          h('td', { class: 'num', text: x.total != null ? money(x.total) : '—' }),
+          h('td', { class: 'num', text: x.price ? money(dispPrice(x.price / (FACT[x.unit] || 1), p.unit)) : '—' }))))))),
+    cancelText: 'Закрыть', noOk: true,
+    extra: { text: '＋ Приход', onClick: () => restockForm(p) }
+  });
+}
+
+function renderPrices(v) {
+  const purchases = S.purchases || [];
+  const now = new Date();
+  const since = new Date(now); since.setDate(since.getDate() - 30);
+  const sinceStr = since.toISOString().slice(0, 10);
+  const recent = purchases.filter(x => x.when.slice(0, 10) >= sinceStr && x.total != null);
+  const spent30 = recent.reduce((s, x) => s + x.total, 0);
+
+  const items = S.products.map(p => { const arr = pricesOf(p.id); return { p, arr, t: trendOf(arr) }; }).filter(x => x.arr.length);
+  const upCount = items.filter(x => x.t != null && x.t >= 0.5).length;
+
+  v.append(h('div', { class: 'toolbar' },
+    h('div', { class: 'grow' }, h('h2', { text: 'Цены и расходы' }),
+      h('div', { class: 'muted', text: 'Считаю по суммам, которые вы указываете при приходе' }))));
+
+  v.append(h('div', { class: 'stats' },
+    h('div', { class: 'stat' }, h('div', { class: 'si c', text: '💸' }), h('div', {}, h('b', { text: money(spent30) }), h('span', { class: 'l', text: 'потрачено за 30 дней' }))),
+    h('div', { class: 'stat' }, h('div', { class: 'si a', text: '🧾' }), h('div', {}, h('b', { text: recent.length }), h('span', { class: 'l', text: 'покупок за 30 дней' }))),
+    h('div', { class: 'stat' }, h('div', { class: 'si b', text: '📈' }), h('div', {}, h('b', { text: upCount }), h('span', { class: 'l', text: 'продуктов подорожало' })))));
+
+  if (!purchases.some(x => x.total != null)) {
+    v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '💰' }), 'Указывайте сумму при приходе продуктов — здесь появятся цены и расходы по месяцам.'));
+    return;
+  }
+
+  // расходы по месяцам
+  const months = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: MONTHS_NOM[d.getMonth()], sum: 0 }); }
+  purchases.forEach(x => { if (x.total != null) { const m = months.find(mm => mm.key === x.when.slice(0, 7)); if (m) m.sum += x.total; } });
+  const maxM = Math.max(1, ...months.map(m => m.sum));
+  v.append(h('h3', { text: 'Расходы по месяцам', style: 'margin-bottom:12px' }));
+  v.append(h('div', { class: 'months' }, months.map((m, i) => h('div', { class: 'mcol' + (i === 5 ? ' cur' : '') },
+    h('span', { class: 'mv', text: m.sum ? Math.round(m.sum / 1000) + 'k' : '' }),
+    h('div', { class: 'mbar', style: `height:${Math.max(2, m.sum / maxM * 100)}%`, title: money(m.sum) }),
+    h('span', { class: 'ml', text: m.label })))));
+
+  // цены по продуктам
+  const host = h('div');
+  const chips = h('div', { class: 'scroller' });
+  const draw = () => {
+    host.replaceChildren();
+    const qs = q.prices.trim().toLowerCase();
+    const list = items.filter(x => (!qs || x.p.name.toLowerCase().includes(qs)) &&
+      (priceFilter === 'all' || (priceFilter === 'up' ? x.t != null && x.t >= 0.5 : x.t != null && x.t <= -0.5)))
+      .sort((a, b) => priceFilter === 'all' ? byName(a.p, b.p) : Math.abs(b.t) - Math.abs(a.t));
+    if (!list.length) { host.className = ''; host.append(h('div', { class: 'empty', text: 'Ничего не найдено.' })); return; }
+    host.className = 'prices';
+    list.forEach(x => {
+      const vals = x.arr.map(a => dispPrice(a.ps, x.p.unit));
+      host.append(h('button', { class: 'price-card', onclick: () => priceDetail(x.p) },
+        h('div', { class: 'em-badge', text: emo(x.p.name) }),
+        h('div', { class: 'mid' },
+          h('div', { style: 'font-weight:700' , text: x.p.name }),
+          h('div', { class: 'pv' }, money(vals[vals.length - 1]), h('small', { text: ' /' + perLbl(x.p.unit) }))),
+        h('div', { class: 'spark' }, vals.length > 1 ? h('span', { html: sparkSvg(vals, 96, 34) }) : null, trendChip(x.t))));
+    });
+  };
+  const drawChips = () => chips.replaceChildren(...[['all', 'Все'], ['up', 'Подорожали'], ['down', 'Подешевели']]
+    .map(([k, t]) => h('button', { class: 'fchip' + (priceFilter === k ? ' on' : ''), onclick: () => { priceFilter = k; drawChips(); draw(); } }, t)));
+  drawChips();
+  v.append(h('section', { class: 'block' },
+    h('div', { class: 'sec-head' }, h('h3', { text: 'Цены на продукты' }),
+      h('input', { type: 'search', placeholder: '🔍 Найти', value: q.prices, 'aria-label': 'Поиск по ценам', oninput: e => { q.prices = e.target.value; draw(); } })),
+    chips, host));
+  draw();
+  const noPrice = S.products.filter(p => !pricesOf(p.id).length);
+  if (noPrice.length) v.append(h('p', { class: 'muted small', style: 'margin-top:14px', text: 'Пока без цены: ' + noPrice.map(p => p.name).join(', ') }));
+}
+
+/* ───── Журнал ───── */
+function renderLog(v) {
+  v.append(h('div', { class: 'toolbar' }, h('div', { class: 'grow' }, h('h2', { text: '📒 Журнал' }), h('div', { class: 'muted', text: 'Последние 100 действий' }))));
+  v.append(S.log.length
+    ? h('div', { class: 'list' }, S.log.map(r => h('div', { class: 'lrow' },
+        h('div', { class: 'nm' }, r.action + (r.obj ? ': ' + r.obj : ''), h('small', { text: r.details })),
+        h('span', { class: 'muted small', text: r.when.slice(8, 10) + '.' + r.when.slice(5, 7) + ' ' + r.when.slice(11, 16) }))))
+    : h('div', { class: 'empty' }, h('span', { class: 'big', text: '📒' }), 'Пока нет записей.'));
+}
+
+/* ───── Помощь: гайд прямо в приложении ───── */
+/* Блок: строка = абзац; {ul|ol: [...]} = список; {h: '...'} = подзаголовок; {tip}; {ex}; {keys: [[значок, что делает]]} */
+const HELP = [
+  { id: 'new', ico: '✨', title: 'Что нового: порции и остатки', open: true, body: [
+    'Три новинки, которые экономят время:',
+    { ul: [
+      '👥 Порции. У блюда указано, на сколько порций рецепт, а при готовке можно выбрать любое число — продукты пересчитаются сами.',
+      '🔁 «Хватает на N раз». Сварили суп на три дня — остатки сами встанут в меню на следующие дни как «вчерашнее», и со склада второй раз ничего не спишется.',
+      '❓ Этот раздел. Он всегда под рукой — кнопка ❓ вверху.'] },
+    { tip: 'Ничего заново настраивать не нужно: старые блюда работают как раньше, пока вы не укажете порции и «хватает на».' }] },
+
+  { id: 'start', ico: '🚀', title: 'Быстрый старт за 5 шагов', body: [
+    { ol: [
+      '🧺 «Склад» — добавьте продукты, которые есть дома (или загрузите список из Excel). Для каждого можно указать «когда пора докупать».',
+      '🍲 «Блюда» — создайте блюда и впишите, из чего они готовятся. Укажите, на сколько порций рецепт.',
+      '🗓️ «Меню» — нажмите «🎲 Составить меню». Приложение подберёт блюда на неделю.',
+      '👩‍🍳 В нужный момент нажмите «Готовить» — продукты спишутся со склада.',
+      '🛒 Внизу вкладки «Меню» — список покупок на неделю. Его можно скачать в Excel.'] },
+    { tip: 'Не получилось с первого раза — не страшно. Любое действие можно отменить кнопкой «↩️ Отменить», а все изменения записываются в 📒 Журнал.' }] },
+
+  { id: 'menu', ico: '🗓️', title: 'Меню на неделю', body: [
+    'Сверху — полоска из семи дней. Точки под числом показывают завтрак, обед и ужин:',
+    { ul: ['🟢 зелёная — приготовлено', '🟣 сиреневая — запланировано', '🔵 голубая — вчерашнее блюдо', '⚪ серая — пока пусто'] },
+    'Ниже — три карточки: завтрак, обед и ужин выбранного дня.',
+    { keys: [['🎲', 'заменить блюдо случайным'], ['✏️', 'выбрать блюдо самой или убрать его'], ['👩‍🍳', 'готовить — спишет продукты со склада'], ['♻️', 'пометить блюдо как вчерашнее'], ['＋ Салат / доп.', 'добавить салат или другое блюдо к приёму пищи']] },
+    { h: 'Как составить меню' },
+    'Кнопка «🎲 Составить меню» спросит, какие приёмы пищи планировать, подбирать ли гарниры, ставить ли остатки на следующие дни и учитывать ли только то, что есть на складе.',
+    { tip: 'Уже приготовленное на этой неделе при новом составлении меню остаётся. Заменится только то, что ещё не готовили.' }] },
+
+  { id: 'portions', ico: '👥', title: 'Порции: готовим на сколько нужно', body: [
+    'Каждый рецепт рассчитан на какое-то число порций. Когда вы готовите на другое число, количество продуктов пересчитывается.',
+    { h: 'Как это настроить' },
+    { ol: [
+      'Вкладка «Блюда» → ✏️ у блюда → поле «Рецепт рассчитан на, порций». Если оставить пустым, считаем 4.',
+      'Состав блюда впишите на это число порций.',
+      'Когда нажмёте «Готовить», в окне будет «Готовим на, порций» — поставьте нужное число кнопками − и ＋.'] },
+    { ex: 'Пример: борщ — рецепт на 4 порции, картофель 1 кг. Готовите на 6 порций — спишется 1,5 кг картофеля. Гарнир считается отдельно, от своего рецепта.' },
+    { h: 'Если в семье всегда одно и то же число' },
+    'Откройте ⚙️ Настройки и впишите «Обычно готовим на» — например, 6. Тогда список покупок, проверка «хватает ли продуктов» и списание будут считаться сразу на 6 порций.',
+    { tip: 'Отмена приготовления («↩️ Отменить») вернёт на склад ровно столько, сколько списали, — с учётом выбранных порций.' }] },
+
+  { id: 'times', ico: '🔁', title: 'Хватает на N раз: остатки сами идут в меню', body: [
+    'Суп, плов, тушёное — часто это на два-три дня. Укажите это у блюда, и приложение само поставит остатки в меню.',
+    { h: 'Как включить' },
+    { ol: ['«Блюда» → ✏️ у основного блюда → «Хватает на, раз» (например, 3).', 'Готово. Дальше всё происходит само.'] },
+    { h: 'Что будет при готовке' },
+    { ul: [
+      'В окне «Готовим?» есть «Хватит на, раз» — можно поменять для этого раза. Один раз вы съедите сразу, остальные — «вчерашнее».',
+      'Поле «Остатки на потом» подскажет, куда они встанут: например, «Завтра, обед · Послезавтра, обед». Можно выбрать другое начало или вообще не ставить.',
+      'Завтрак → остатки встанут на обед следующего дня. Обед и ужин — на тот же приём пищи в следующие дни.',
+      'Вчерашнее не списывает продукты и не попадает в список покупок. Когда съедите — нажмите «✓ Съели».'] },
+    { h: 'При составлении меню' },
+    'Если оставить галочку «Ставить остатки на следующие дни», суп на три раза займёт три обеда подряд: один «Готовить», два «Вчерашнее».',
+    { h: 'Если что-то пошло не так' },
+    { ul: [
+      'Нажали «Готовить» по ошибке — «↩️ Отменить»: продукты вернутся, а несъеденные остатки в меню исчезнут.',
+      'Остаток не нужен — на карточке нажмите «👩‍🍳 Буду готовить» или ✏️ и выберите другое блюдо.',
+      'Остатки не переходят на следующую неделю: после воскресенья их ставить некуда, приложение об этом скажет.'] }] },
+
+  { id: 'leftover', ico: '♻️', title: 'Вчерашнее блюдо вручную', body: [
+    'Остался ужин, который не планировали переносить? На карточке обеда или ужина нажмите «♻️ Вчерашнее».',
+    { ul: ['Если блюдо готовили вчера или сегодня раньше, приложение предложит «Доесть: …».', 'Можно выбрать любое другое блюдо из списка.', 'Продукты со склада не списываются.'] },
+    { tip: 'Вчерашнее можно ставить только на обед и ужин.' }] },
+
+  { id: 'sides', ico: '🥗', title: 'Гарниры и салаты', body: [
+    { ul: [
+      'У блюда включите «Подаётся с гарниром» — меню само подберёт гарнир (пюре, рис, гречка…).',
+      'Гарнир можно сменить в любой момент, даже после готовки: старый вернётся на склад, новый спишется.',
+      'Салаты и другие дополнения добавляются кнопкой «＋ Салат / доп.». К одному приёму пищи их можно добавить несколько.'] },
+    'Тип блюда (основное, гарнир, салат) задаётся в форме блюда.'] },
+
+  { id: 'stock', ico: '🧺', title: 'Склад и покупки', body: [
+    { ul: [
+      'Плитка продукта показывает остаток и полоску запаса. Жёлтая — пора докупать, красная — закончился.',
+      '«＋ Приход» — внесли купленное. Можно указать сумму: тогда появятся цены и расходы на вкладке 💰.',
+      '✏️ — поменять название, единицу или «когда пора докупать».',
+      'Единицы: кг и г, л и мл, штуки. Килограммы и граммы пересчитываются сами: можно писать 250 г, даже если продукт считается в кг.'] },
+    { tip: 'Вверху экрана жёлтая полоса «Пора докупить» напоминает, что заканчивается.' }] },
+
+  { id: 'excel', ico: '📥', title: 'Excel: список покупок и загрузка', body: [
+    'Один и тот же файл служит и списком покупок, и бланком для загрузки.',
+    { ol: [
+      'Вкладка «Склад» → «🛒 Список покупок» (или «📄 Бланк склада» для большой закупки). Скачайте файл.',
+      'В магазине впишите в жёлтые столбцы «Куплено» и, по желанию, «Сумма».',
+      'Вернитесь в «Склад» → «📥 Загрузить из Excel». Приложение покажет, что изменится, и спросит подтверждение.'] },
+    'Новые строки в файле станут новыми продуктами. Пустое «Куплено» пропускается.'] },
+
+  { id: 'matrix', ico: '🧮', title: 'Матрица и цены', body: [
+    { ul: [
+      '🧮 Матрица — таблица «блюда × продукты». Нажмите на блюдо, чтобы остались только его продукты. Числа в ячейках можно править; розовое — не хватает на складе.',
+      '💰 Цены — сколько потрачено, как менялись цены, какие продукты подорожали. Чтобы здесь что-то появилось, указывайте сумму при приходе.'] }] },
+
+  { id: 'settings', ico: '⚙️', title: 'Настройки и уведомления', body: [
+    { ul: [
+      '«Обычно готовим на, порций» — сколько порций считать по умолчанию.',
+      '«Почта» — приложение напишет, когда продукт подходит к концу. Раз в день письмо приходит, если в таблице включена проверка остатков.'] }] },
+
+  { id: 'faq', ico: '🤔', title: 'Частые вопросы', body: [
+    { h: 'Кнопка «Готовить» не нажимается' },
+    'Не хватает продуктов. Красная подпись на карточке покажет, чего именно. Внесите приход или выберите другое блюдо.',
+    { h: 'При готовке пишет «Не хватает продуктов», хотя на карточке «Всё есть»' },
+    'Вы увеличили число порций. Уменьшите его в окне готовки или пополните склад.',
+    { h: 'Нажала не то' },
+    'У приготовленного блюда есть «↩️ Отменить». Продукты вернутся на склад.',
+    { h: 'Что значит «по умолч.» у числа порций' },
+    'У блюда не указано, на сколько порций рецепт, поэтому считаем 4. Откройте ✏️ и впишите своё число.',
+    { h: 'Куда пропали данные?' },
+    'Они хранятся в вашей Google Таблице, по листам «Продукты», «Блюда», «План» и так далее. Приложение их не удаляет.'] },
+
+  { id: 'cheat', ico: '📋', title: 'Шпаргалка по значкам', body: [
+    { keys: [['👩‍🍳', 'готовить'], ['♻️', 'вчерашнее / остатки'], ['🔁', 'хватает на несколько раз'], ['👥', 'порции'], ['🎲', 'выбрать случайно'], ['✏️', 'изменить'], ['↩️', 'отменить'], ['＋', 'добавить'], ['🛒', 'список покупок'], ['📒', 'журнал действий']] }] }
+];
+
+function helpBlock(b) {
+  if (typeof b === 'string') return h('p', { text: b });
+  if (b.ul) return h('ul', {}, b.ul.map(x => h('li', { text: x })));
+  if (b.ol) return h('ol', {}, b.ol.map(x => h('li', { text: x })));
+  if (b.h) return h('h4', { text: b.h });
+  if (b.tip) return h('div', { class: 'tip' }, '💡 ' + b.tip);
+  if (b.ex) return h('div', { class: 'ex' }, b.ex);
+  if (b.keys) return h('div', { class: 'keys' }, b.keys.map(([k, t]) => [h('b', { text: k }), h('span', { text: t })]));
+  return null;
+}
+const helpText = s => (s.title + ' ' + JSON.stringify(s.body)).toLowerCase().replace(/ё/g, 'е');
+
+function renderHelp(v) {
+  const secs = h('div');
+  const toc = h('div', { class: 'scroller' });
+  const search = h('input', { type: 'search', placeholder: '🔍 Найти в помощи', 'aria-label': 'Поиск в помощи', value: q.help || '' });
+  const nodes = {};
+  HELP.forEach(s => {
+    const d = h('details', { class: 'hs', id: 'help-' + s.id, open: !!s.open },
+      h('summary', {}, h('span', { class: 'hs-ico', text: s.ico }), h('span', { text: s.title })),
+      h('div', { class: 'hs-body' }, s.body.map(helpBlock)));
+    nodes[s.id] = d;
+    secs.append(d);
+  });
+  const go = id => { const d = nodes[id]; if (!d) return; d.hidden = false; d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  toc.append(...HELP.map(s => h('button', { class: 'fchip', onclick: () => go(s.id) }, s.ico + ' ' + s.title.split(':')[0])));
+  const empty = h('div', { class: 'empty', hidden: true }, h('span', { class: 'big', text: '🔍' }), 'В помощи такого нет. Попробуйте другое слово.');
+  const filter = () => {
+    q.help = search.value;
+    const qs = search.value.trim().toLowerCase().replace(/ё/g, 'е');
+    let shown = 0;
+    HELP.forEach(s => {
+      const hit = !qs || helpText(s).includes(qs);
+      nodes[s.id].hidden = !hit;
+      if (qs && hit) nodes[s.id].open = true;
+      if (hit) shown++;
+    });
+    empty.hidden = shown > 0;
+  };
+  search.addEventListener('input', filter);
+  v.append(
+    h('div', { class: 'help-hero' },
+      h('span', { class: 'hand', text: 'Помощь' }),
+      h('h2', { text: 'Как пользоваться «Домашней кухней»' }),
+      h('div', { class: 'muted', text: 'Нажмите на тему, чтобы открыть. Или найдите по слову — например, «порции» или «остатки».' }),
+      search),
+    toc, secs, empty);
+  filter();
+}
+
+/* Подсказка про новинки: один раз, пока не закроют */
+const NEWS_KEY = 'dk_news_portions_v1';
+function newsSeen() { try { return !!localStorage.getItem(NEWS_KEY); } catch (e) { return false; } }
+function newsCard() {
+  if (newsSeen()) return null;
+  const close = () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* без хранилища просто покажем снова */ } render(); };
+  return h('div', { class: 'news' }, h('span', { class: 'em', text: '✨' }),
+    h('div', { class: 'tx' }, 'Новое: порции и «хватает на N раз»', h('small', { text: 'Суп или плов сами встанут в меню на следующие дни.' })),
+    h('button', { class: 'btn sm', onclick: () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* ничего */ } tab = 'help'; render(); window.scrollTo(0, 0); } }, 'Как это работает'),
+    h('button', { class: 'icon-act', 'aria-label': 'Скрыть', onclick: close }, '×'));
+}
+
+/* ───── Запуск ───── */
+function render() {
+  renderBanner();
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  $('#btnLog').classList.toggle('on', tab === 'log');
+  $('#btnHelp').classList.toggle('on', tab === 'help');
+  const v = $('#view');
+  v.replaceChildren();
+  ({ week: renderWeek, stock: renderStock, dishes: renderDishes, matrix: renderMatrix, prices: renderPrices, log: renderLog, help: renderHelp })[tab](v);
+}
+
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  tab = b.dataset.t;
+  if (S) { render(); window.scrollTo(0, 0); }
+}));
+
+(async function init() {
+  try {
+    S = await call('getState');
+    render();
+  } catch (e) {
+    $('#view').replaceChildren(h('div', { class: 'empty' }, h('span', { class: 'big', text: '😕' }), 'Не удалось загрузить данные: ' + cleanErr(e)));
+  }
+})();
+</script>
+</body>
+</html>
