@@ -505,8 +505,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
 <div id="toast" hidden></div>
 
 <script>
-const UNITS = ['КГ', 'Г', 'Л', 'МЛ', 'ШТ'];
-const FACT = { 'КГ': 1000, 'Г': 1, 'Л': 1000, 'МЛ': 1, 'ШТ': 1 };          // в граммах / миллилитрах / штуках
+const { UNITS, FACT, EPS, DEF_PORTIONS, MEALS } = Logic.consts;   // единицы, коэффициенты (г/мл/шт), общие с logic.js
 const FAM = { 'КГ': 'm', 'Г': 'm', 'Л': 'v', 'МЛ': 'v', 'ШТ': 'p' };
 const FAM_UNITS = { m: ['КГ', 'Г'], v: ['Л', 'МЛ'], p: ['ШТ'] };
 const UNIT_LBL = { 'КГ': 'кг', 'Г': 'г', 'Л': 'л', 'МЛ': 'мл', 'ШТ': 'шт' };
@@ -514,7 +513,6 @@ const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const DAYS_FULL = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const MONTHS_NOM = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-const EPS = 1e-9;
 
 let S = null;
 let tab = 'week';
@@ -524,8 +522,6 @@ let dishFilter = 'all', stockFilter = 'all', priceFilter = 'all';
 let mDish = null;
 let selDay = null;
 const genOpts = { meals: ['Завтрак', 'Обед', 'Ужин'], sides: true, leftovers: true };
-const DEF_PORTIONS = 4;   // если у блюда не указано, на сколько порций рецепт (так же считает и сервер)
-const MEALS = ['Завтрак', 'Обед', 'Ужин'];
 const MEAL_EMO = { 'Завтрак': '🌅', 'Обед': '☀️', 'Ужин': '🌙' };
 const TYPE_LBL = { main: 'Основное', side: 'Гарнир', extra: 'Салат / доп.' };
 
@@ -567,11 +563,11 @@ function h(tag, props, ...kids) {
   return e;
 }
 
-const r3 = x => Math.round(x * 1000) / 1000;
+const r3 = Logic.calc.r3;
 const fmt = n => r3(n).toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 const qtyStr = (n, unit) => fmt(n) + '\u00a0' + (UNIT_LBL[unit] || unit);
-const sameFam = (a, b) => !!FAM[a] && FAM[a] === FAM[b];
-const conv = (x, from, to) => (!from || !to || from === to || !sameFam(from, to)) ? x : Math.round(x * FACT[from] / FACT[to] * 1e6) / 1e6;
+const sameFam = Logic.util.sameFam;
+const conv = Logic.util.conv;
 const famOf = u => FAM_UNITS[FAM[u]] || UNITS;
 /* 0,25 кг → 250 г; 1500 мл → 1,5 л */
 function nice(x, u) {
@@ -592,7 +588,7 @@ const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
 const P = id => S.products.find(p => p.id === id);
 const D = id => S.dishes.find(d => d.id === id);
 const ingOf = id => S.ing.filter(i => i.dish === id && P(i.product));
-const isLow = p => p.stock <= p.min;
+const isLow = Logic.calc.isLow;
 const toNum = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
 
 function status(dishId) {
@@ -726,7 +722,9 @@ async function offerXlsx(filename, rows, opts) {
   }
 }
 
-function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }   // по местному времени, не через UTC
+function todayStr() { return dateStr(new Date()); }
+function daysAgoStr(n, from) { const d = new Date(from == null ? Date.now() : from); d.setDate(d.getDate() - n); return dateStr(d); }
 
 function xlRow(p, plan, need, cost) {
   return [p.name, p.unit, plan > 0 ? r3(plan) : '', '', '', r3(p.min), r3(p.stock), need > 0 ? r3(need) : '', cost != null ? Math.round(cost) : ''];
@@ -851,41 +849,17 @@ function importPreview(rows, fname) {
 }
 
 /* ───── Порции и список покупок ───── */
-const dishP = id => { const d = D(id); return d && d.portions > 0 ? d.portions : DEF_PORTIONS; };
+const dishP = id => Logic.calc.dishP(S, id);
 const defP = () => (S.settings && S.settings.portions) || 0;                 // «обычно готовим на N порций» (0 — по рецепту)
 const itemP = it => (it.portions > 0 ? it.portions : defP());
 const timesWord = n => ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'раза' : 'раз');
-/* P — порции (не задано = как в настройках, 0 = по рецепту); каждое блюдо масштабируется от своего рецепта */
-function needMap(dishId, sideId, P) {
-  const p = P === undefined ? defP() : P;
-  const n = {};
-  [dishId, sideId].forEach(id => {
-    if (!id) return;
-    const k = p > 0 ? p / dishP(id) : 1;
-    ingOf(id).forEach(i => { n[i.product] = (n[i.product] || 0) + i.qty * k; });
-  });
-  return n;
-}
-const itemNeed = it => it.left ? {} : needMap(it.dish, it.kind === 'main' ? it.side : '', itemP(it));   // вчерашнее склад не трогает
+/* Расчёты потребности — в общем модуле logic.js (одни и те же числа на экране и при готовке) */
+const needMap = (dishId, sideId, P) => Logic.calc.needMap(S, dishId, sideId, P);
+const itemNeed = it => Logic.calc.itemNeed(S, it);   // вчерашнее склад не трогает
 const lacksOf = need => Object.keys(need).filter(k => P(k) && P(k).stock + EPS < need[k]);
 const needLines = need => Object.keys(need).filter(k => P(k)).map(k => `${emo(P(k).name)} ${P(k).name}: −${qtyNice(need[k], P(k).unit)}`);
-function weekNeed() {
-  const need = {};
-  (S.plan || []).forEach(it => { if (it.dish && !it.done) { const n = itemNeed(it); Object.keys(n).forEach(k => { need[k] = (need[k] || 0) + n[k]; }); } });
-  return need;
-}
-function shoppingList() {
-  const need = weekNeed();
-  return S.products.map(p => {
-    const n = need[p.id] || 0;
-    const short = n > p.stock + EPS;
-    if (!short && !isLow(p)) return null;
-    let buy = r3(Math.max(0, n + p.min - p.stock));
-    if (buy <= 0) buy = p.min > 0 ? p.min : 0;
-    const lp = lastPrice(p.id);
-    return { p, need: n, buy, short, cost: lp != null ? lp * buy * (FACT[p.unit] || 1) : null };
-  }).filter(Boolean).sort((a, b) => (b.short - a.short) || byName(a.p, b.p));
-}
+const weekNeed = () => Logic.calc.weekNeed(S);
+const shoppingList = () => Logic.calc.shoppingList(S, lastPrice);
 function exportShopping() {
   const list = shoppingList();
   if (!list.length) { toast('Докупать ничего не нужно 🎉 Для большой закупки скачайте бланк склада.', 'good'); return; }
@@ -1905,8 +1879,7 @@ function priceDetail(p) {
 function renderPrices(v) {
   const purchases = S.purchases || [];
   const now = new Date();
-  const since = new Date(now); since.setDate(since.getDate() - 30);
-  const sinceStr = since.toISOString().slice(0, 10);
+  const sinceStr = daysAgoStr(30);
   const recent = purchases.filter(x => x.when.slice(0, 10) >= sinceStr && x.total != null);
   const spent30 = recent.reduce((s, x) => s + x.total, 0);
 

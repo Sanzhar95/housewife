@@ -978,6 +978,50 @@ function importProducts(rows) {
   return { apply, util, actions: Object.keys(ACTIONS) };
 }
 
+/* ───── Общие расчёты для экранов (состояние m передаётся явно; работают с любым состоянием) ───── */
+const consts = { UNITS: ['КГ', 'Г', 'Л', 'МЛ', 'ШТ'], FACT: { 'КГ': 1000, 'Г': 1, 'Л': 1000, 'МЛ': 1, 'ШТ': 1 }, EPS: 1e-9, DEF_PORTIONS: 4, MEALS: ['Завтрак', 'Обед', 'Ужин'] };
+const calc = (function () {
+  const r3 = x => Math.round(x * 1000) / 1000;
+  const EPS = consts.EPS, FACT = consts.FACT;
+  const dishOf = (m, id) => m.dishes.find(d => d.id === id) || null;
+  const hasProduct = (m, id) => m.products.some(p => p.id === id);
+  const dishP = (m, id) => { const d = dishOf(m, id); return d && d.portions > 0 ? d.portions : consts.DEF_PORTIONS; };
+  const defP = m => (m.settings && m.settings.portions) || 0;
+  const itemP = (m, it) => (it.portions > 0 ? it.portions : defP(m));
+  /** Сколько каждого продукта нужно на блюдо с гарниром (в единице продукта). P: не задано — порции из настроек, 0 — по рецепту. */
+  function needMap(m, dishId, sideId, P) {
+    const p = P === undefined ? defP(m) : P;
+    const n = {};
+    [dishId, sideId].forEach(id => {
+      if (!id) return;
+      const k = p > 0 ? p / dishP(m, id) : 1;
+      m.ing.filter(i => i.dish === id && hasProduct(m, i.product)).forEach(i => { n[i.product] = (n[i.product] || 0) + i.qty * k; });
+    });
+    return n;
+  }
+  const itemNeed = (m, it) => it.left ? {} : needMap(m, it.dish, it.kind === 'main' ? it.side : '', itemP(m, it));
+  function weekNeed(m) {
+    const need = {};
+    (m.plan || []).forEach(it => { if (it.dish && !it.done) { const n = itemNeed(m, it); Object.keys(n).forEach(k => { need[k] = (need[k] || 0) + n[k]; }); } });
+    return need;
+  }
+  const isLow = p => p.stock <= p.min;
+  /** lastPrice(productId) → цена за базовую единицу (г/мл/шт) или null. */
+  function shoppingList(m, lastPrice) {
+    const need = weekNeed(m);
+    return m.products.map(p => {
+      const n = need[p.id] || 0;
+      const short = n > p.stock + EPS;
+      if (!short && !isLow(p)) return null;
+      let buy = r3(Math.max(0, n + p.min - p.stock));
+      if (buy <= 0) buy = p.min > 0 ? p.min : 0;
+      const lp = lastPrice ? lastPrice(p.id) : null;
+      return { p, need: n, buy, short, cost: lp != null ? lp * buy * (FACT[p.unit] || 1) : null };
+    }).filter(Boolean).sort((a, b) => (b.short - a.short) || a.p.name.localeCompare(b.p.name, 'ru'));
+  }
+  return { r3, dishP, defP, itemP, needMap, itemNeed, weekNeed, isLow, shoppingList };
+})();
+
 const util = create({ rng: Math.random, id: function () { return ''; }, now: function () { return ''; }, today: function () { return ''; } }).util;
-return { create, util };
+return { create, util, calc, consts };
 });
