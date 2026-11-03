@@ -5,7 +5,7 @@ const { makePair } = require('../helpers/pair');
 const sheets = require('../fixtures/sheets.synthetic.json');
 
 const clone = x => JSON.parse(JSON.stringify(x));
-const rich = () => { const s = clone(sheets); s['Продукты'].slice(1).forEach(r => { r[3] = 50; }); return s; };
+const rich = () => { const s = clone(sheets); s['Продукты'].slice(1).forEach(r => { r[3] = (r[2] === 'Г' || r[2] === 'МЛ') ? 5000 : 50; }); return s; };
 
 test('cookItem: обычная готовка, порции, повтор, нехватка', () => {
   const p = makePair(sheets);
