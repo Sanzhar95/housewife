@@ -953,10 +953,42 @@ function importProducts(rows) {
     });
   }
 
+  /* ───── Метрики: этих записей нет в Code.gs (в сравнительных тестах они не учитываются) ───── */
+
+  function dishNameRow_(id) { const d = R.dishes.find(r => String(r[0]) === id); return d ? String(d[1]) : ''; }
+  function planDishName_(planId) { const it = R.plan.find(r => String(r[0]) === String(planId)); return it ? dishNameRow_(String(it[4])) : ''; }
+  /** Выполнить действие и дописать «Блюдо заменено»; state_ пересобирается, чтобы запись попала в ответ. */
+  function replaced_(fn, how) {
+    return function () {
+      const args = arguments;
+      const before = how === 'removed' ? planDishName_(args[0]) : '';
+      const out = fn.apply(null, args);
+      let obj = before;
+      if (how === 'rerolled') obj = planDishName_(args[0]);
+      else if (how === 'chosen') obj = args[1] ? dishNameRow_(String(args[1])) : planDishName_(args[0]);
+      else if (how === 'added') obj = args[3] ? dishNameRow_(String(args[3])) : '';
+      if (how === 'chosen' && !args[1]) how = 'removed';
+      const det = { rerolled: 'другое блюдо', chosen: 'выбрано вручную', removed: 'убрано из меню', added: 'добавлено в меню' }[how];
+      if (how === 'added' && !obj) { const added = R.plan[R.plan.length - 1]; obj = added ? dishNameRow_(String(added[4])) : ''; }
+      log_('Блюдо заменено', obj, det);
+      const st = state_();
+      if (out.notice) st.notice = out.notice;
+      return st;
+    };
+  }
+  /** «Меню открыто» — не чаще раза в час (для подсчёта, как часто семья заглядывает в меню). */
+  function touchMenu() {
+    const last = R.log.slice().reverse().find(r => r[1] === 'Меню открыто');
+    const t = s => { const m = /^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)/.exec(String(s)); return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime() : 0; };
+    if (!last || t(now_()) - t(last[0]) >= 60 * 60 * 1000) log_('Меню открыто', '', '');
+    return state_();
+  }
+
   const ACTIONS = {
     getState, saveProduct, adjustStock, deleteProduct, saveDish, deleteDish, setIngredient,
-    generateWeek, addItem, rerollItem, setItem, removeItem, setSide, rerollSide,
-    cookItem, cookMeal, setLeftover, addLeftover, undoItem, cookDish, importProducts, saveSettings
+    generateWeek, addItem: replaced_(addItem, 'added'), rerollItem: replaced_(rerollItem, 'rerolled'),
+    setItem: replaced_(setItem, 'chosen'), removeItem: replaced_(removeItem, 'removed'), setSide, rerollSide,
+    cookItem, cookMeal, setLeftover, addLeftover, undoItem, cookDish, importProducts, saveSettings, touchMenu
   };
 
   function apply(name, state, args) {

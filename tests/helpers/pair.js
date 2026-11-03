@@ -5,7 +5,13 @@ const det = require('./det');
 const { createOracle } = require('../oracle/gs-runner');
 const Logic = require('../../public/logic.js');
 
-const strip = v => JSON.parse(JSON.stringify(v, (k, x) => (k === '_new' ? undefined : x)));
+// Записи журнала, которых нет в Code.gs (метрики этапа 2), в сравнении не участвуют.
+const EXTRA_LOG = ['Блюдо заменено', 'Меню открыто'];
+const strip = v => {
+  const o = JSON.parse(JSON.stringify(v, (k, x) => (k === '_new' ? undefined : x)));
+  if (o && Array.isArray(o.log)) o.log = o.log.filter(e => EXTRA_LOG.indexOf(e.action) < 0);
+  return o;
+};
 const noNotice = v => { const o = strip(v); delete o.notice; return o; };
 
 function makePair(sheets, opts) {

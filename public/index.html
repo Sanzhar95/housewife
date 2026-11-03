@@ -2149,6 +2149,7 @@ function render() {
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.t;
   if (S) { render(); window.scrollTo(0, 0); }
+  touchMenu();
 }));
 
 /* ───── вход и запуск ───── */
@@ -2208,6 +2209,9 @@ function sessionLost() {
   toast('Войдите заново', 'bad');
 }
 
+/** Запись «Меню открыто» (не чаще раза в час) — по ней видно, как часто семья заглядывает в меню. Ошибки не показываем. */
+function touchMenu() { if (tab === 'week' && window.API && S) API.touchMenu().catch(() => {}); }
+
 let started = false;
 async function startApp() {
   document.body.classList.remove('anon');
@@ -2224,6 +2228,7 @@ async function startApp() {
     });
   }
   render();
+  touchMenu();
 }
 
 (async function init() {
