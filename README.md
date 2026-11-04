@@ -101,6 +101,8 @@ Workers & Pages → Create → Pages → Connect to Git → выберите р�
 
 `npm test` запускает `node --test tests/`. Тесты базы (`tests/rls.test.js`) требуют локального `.env` с `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`; без них пропускаются. Файл xlsx в git не кладём; для проверок на реальных данных: `DK_XLSX=путь npm test`.
 
+Загрузка блюд из Excel (формат файла для людей): [docs/import-format.md](docs/import-format.md).
+
 ## Забытый пароль
 
 Заполняется после проверки в Supabase (план, Task 2).

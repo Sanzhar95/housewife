@@ -20,6 +20,7 @@
 <script src="/auth.js"></script>
 <script src="/api.js"></script>
 <script src="/xlsx-export.js"></script>
+<script src="/import-dishes.js"></script>
 <style>
 :root{
   color-scheme:light;
@@ -473,7 +474,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .dlg-head h3{font-size:20px}
   .dlg-body{padding:8px 18px 16px}
   .dlg-actions{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));flex-wrap:wrap}
-  .dlg-actions .btn.primary{flex:1;min-height:50px}
+  .dlg-actions .btn.primary{flex:1;min-height:50px;white-space:nowrap}
   .dlg-actions .btn.ghost{min-height:50px}
 }
 </style>
@@ -846,6 +847,65 @@ function importPreview(rows, fname) {
     onOk: async () => {
       if (!send.length) return true;
       return !!(await act('importProducts', send.map(r => ({ name: r.name, unit: r.unit, qty: r.qty, min: r.min, total: r.total }))));
+    }
+  });
+}
+
+/* ───── Загрузка блюд из Excel (формат — docs/import-format.md) ───── */
+function downloadDishTemplate() {
+  offerXlsx('Бланк блюд.xlsx', ImportDishes.templateRows(), {});
+}
+
+function pickDishesExcel() {
+  if (typeof XLSX === 'undefined') { toast('Не удалось загрузить модуль Excel. Проверьте интернет и обновите страницу.', 'bad'); return; }
+  const inp = $('#fileIn');
+  inp.value = '';
+  inp.onchange = async () => {
+    const f = inp.files[0];
+    if (!f) return;
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+      const parsed = ImportDishes.parse(aoa, S);
+      if (!parsed.ok) { toast(parsed.error, 'bad'); return; }
+      dishImportPreview(parsed, f.name);
+    } catch (e) {
+      toast('Не получилось прочитать файл: ' + cleanErr(e), 'bad');
+    }
+  };
+  inp.click();
+}
+
+function dishImportPreview(parsed, fname) {
+  const ds = parsed.dishes;
+  const cnt = k => ds.filter(d => d.status === k).length;
+  const nNew = cnt('new');
+  const ICON = { new: '🆕', exists: '✔️', err: '⚠️' };
+  const detail = d => {
+    if (d.status === 'err') return d.err;
+    if (d.status === 'exists') return 'уже есть, не меняю';
+    const newP = (d.ing || []).filter(i => i.isNew).length;
+    return `в составе: ${(d.ing || []).length}` + (newP ? `, новых продуктов: ${newP}` : '');
+  };
+  const summary = ds.length
+    ? `новых: ${nNew}, уже есть: ${cnt('exists')}, с ошибкой: ${cnt('err')}, новых продуктов: ${parsed.newProducts}`
+    : 'В файле нет блюд';
+  const body = h('div', {},
+    h('p', { class: 'muted small', text: `${fname}. ${summary}.` }),
+    h('div', {}, ds.map(d => h('div', { class: 'imp-row' + (d.status === 'err' ? ' err' : '') },
+      h('span', { text: ICON[d.status] || '•' }),
+      h('div', { class: 'nm' }, d.name || '—', h('small', { text: detail(d) }))))));
+  modal({
+    title: '📥 Блюда из Excel',
+    body,
+    okText: nNew ? `Загрузить (${nNew})` : 'Закрыть',
+    onOk: async () => {
+      if (!nNew) return true;
+      const btn = document.querySelector('#dlgBox .dlg-actions .btn.primary');
+      if (btn) btn.disabled = true;   // защита от двойного тапа: второй вызов создал бы дубли
+      const ok = !!(await act('importDishes', ImportDishes.toRows(parsed)));
+      if (!ok && btn) btn.disabled = false;
+      return ok;
     }
   });
 }
@@ -1762,6 +1822,9 @@ function renderDishes(v) {
     h('div', { class: 'grow' }, h('h2', { text: 'Блюда' }), h('div', { class: 'muted', text: 'Основные блюда, гарниры, салаты — и из чего они готовятся' })),
     h('input', { type: 'search', placeholder: '🔍 Найти блюдо', value: q.dishes, 'aria-label': 'Поиск блюда', oninput: e => { q.dishes = e.target.value; drawDishes(host); } }),
     h('button', { class: 'btn primary desk', onclick: () => dishForm(null) }, '＋ Добавить блюдо')));
+  v.append(h('div', { class: 'actions-row' },
+    h('button', { class: 'btn sm', onclick: pickDishesExcel }, '📥 Загрузить блюда из Excel'),
+    h('button', { class: 'btn sm', onclick: downloadDishTemplate }, '📄 Бланк блюд')));
   v.append(chips, host);
   drawDishes(host);
   v.append(h('button', { class: 'fab', onclick: () => dishForm(null) }, h('b', { text: '＋' }), 'Блюдо'));
@@ -2068,7 +2131,9 @@ const HELP = [
       'Вкладка «Склад» → «🛒 Список покупок» (или «📄 Бланк склада» для большой закупки). Скачайте файл.',
       'В магазине впишите в жёлтые столбцы «Куплено» и, по желанию, «Сумма».',
       'Вернитесь в «Склад» → «📥 Загрузить из Excel». Приложение покажет, что изменится, и спросит подтверждение.'] },
-    'Новые строки в файле станут новыми продуктами. Пустое «Куплено» пропускается.'] },
+    'Новые строки в файле станут новыми продуктами. Пустое «Куплено» пропускается.',
+    { h: 'Загрузить сразу много блюд' },
+    'Вкладка «Блюда» → «📄 Бланк блюд» → заполните файл (в нём есть три примера; блюдо можно писать в несколько строк, по одному продукту в строке) → «📥 Загрузить блюда из Excel». Приложение покажет, что будет добавлено: 🆕 новое, ✔️ уже есть, ⚠️ ошибка и её причина. Блюда, которые у вас уже есть, не меняются, а недостающие продукты добавятся на склад с нулевым остатком.'] },
 
   { id: 'matrix', ico: '🧮', title: 'Матрица и цены', body: [
     { ul: [

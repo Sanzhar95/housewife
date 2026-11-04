@@ -127,3 +127,78 @@ test('ссылка-приглашение: плохой токен — поня�
     await page.waitForSelector('nav .tab');
   } finally { await browser.close(); server.close(); }
 });
+
+// Загрузка блюд из Excel (390px). SheetJS берётся с CDN и в тестовой среде может быть недоступен,
+// поэтому window.XLSX подменён заглушкой: «файл» — это JSON с массивом строк листа, XLSX.read его разбирает.
+// Настоящее чтение xlsx проверяется в tests/import-dishes (чистый разбор) и вручную на телефоне.
+test('блюда: загрузка из Excel — бланк, проверка, подтверждение, повтор (390px)', { skip: !playwright }, async () => {
+  const server = await serve();
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await playwright.chromium.launch();
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 800 }, deviceScaleFactor: 1 })).newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  page.on('console', m => { if (m.type() === 'error' && !/favicon|manifest|ERR_NAME_NOT_RESOLVED|fonts|cdnjs|net::/.test(m.text())) errors.push(m.text()); });
+  const shot = n => page.screenshot({ path: path.join(process.env.UI_SHOTS || '/tmp', n + '.png') });
+  await page.route(/cdnjs\.cloudflare\.com/, r => r.abort());
+  await page.addInitScript(() => {
+    window.XLSX = {
+      read: buf => ({ SheetNames: ['s'], Sheets: { s: JSON.parse(new TextDecoder().decode(buf)) } }),
+      utils: { sheet_to_json: ws => ws }
+    };
+  });
+  const upload = (aoa) => page.setInputFiles('#fileIn', { name: 'dishes.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(JSON.stringify(aoa)) });
+  try {
+    await page.goto(base + '/');
+    await page.fill('input[type=email]', 'mama@example.com');
+    await page.fill('input[type=password]', 'password1');
+    await page.click('.auth .btn.primary');
+    await page.waitForSelector('nav .tab');
+    await page.click('nav .tab[data-t=dishes]');
+    assert.ok(await page.isVisible('text=📥 Загрузить блюда из Excel'));
+    assert.ok(await page.isVisible('text=📄 Бланк блюд'));
+
+    // свои блюда с уникальными названиями: пример из бланка пересекается с продуктами тестовой семьи
+    const H = await page.evaluate(() => ImportDishes.HEAD);
+    const template = [H,
+      ['Тест-плов', 'основное', 'обед, ужин', 'да', 6, 2, '', 'Тест-рис', 0.5, 'кг'],
+      ['', '', '', '', '', '', '', 'Тест-курица', 800, 'г'],
+      ['Тест-салат', 'салат', '', 'нет', '', '', '', 'Тест-огурцы', 300, 'г'],
+      ['Тест-гречка', 'гарнир', 'обед', '', 4, 1, '', 'Тест-крупа', 250, 'г']];
+    const before = await page.evaluate(() => S.dishes.length);
+
+    await page.click('text=📥 Загрузить блюда из Excel');
+    await upload(template);
+    await page.waitForSelector('#dlgBox .imp-row');
+    assert.strictEqual(await page.locator('#dlgBox .imp-row').filter({ hasText: '🆕' }).count(), 3);
+    assert.match(await page.textContent('#dlgBox'), /новых: 3/);
+    await page.waitForTimeout(500);   // шторка выезжает снизу
+    await shot('10-dishes-import');
+    await page.click('#dlgBox .btn.primary:has-text("Загрузить (3)")');
+    await page.waitForFunction(n => S.dishes.length === n + 3, before);
+    await page.waitForFunction(() => !document.getElementById('dlg').open);
+
+    // повтор того же файла: всё «уже есть», кнопка «Закрыть»
+    await page.click('text=📥 Загрузить блюда из Excel');
+    await upload(template);
+    await page.waitForSelector('#dlgBox .imp-row');
+    assert.strictEqual(await page.locator('#dlgBox .imp-row').filter({ hasText: '✔️' }).count(), 3);
+    assert.match(await page.textContent('#dlgBox'), /уже есть: 3/);
+    assert.ok(await page.isVisible('#dlgBox .btn.primary:has-text("Закрыть")'));
+    await shot('11-dishes-import-again');
+    await page.click('#dlgBox .btn.primary:has-text("Закрыть")');
+    assert.strictEqual(await page.evaluate(() => S.dishes.length), before + 3);
+
+    // только заголовок
+    await page.click('text=📥 Загрузить блюда из Excel');
+    await upload([template[0]]);
+    await page.waitForSelector('#dlgBox >> text=В файле нет блюд');
+    await page.keyboard.press('Escape');
+
+    // чужой бланк (склада)
+    await page.click('text=📥 Загрузить блюда из Excel');
+    await upload([['Название', 'Ед.', 'Купить (подсказка)', 'Куплено'], ['Картофель', 'КГ', '', 3]]);
+    await page.waitForSelector('text=Это не наш бланк');
+  } finally { await browser.close(); server.close(); }
+  assert.deepStrictEqual(errors, []);
+});
