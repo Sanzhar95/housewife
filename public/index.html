@@ -377,7 +377,7 @@ dialog::backdrop{background:rgba(42,35,56,.45)}
 .news .em{font-size:26px;grid-area:1/1}
 .news .tx{grid-area:1/2;font-weight:700;font-size:15px;line-height:1.3}
 .news .tx small{display:block;color:var(--muted);font-weight:600;font-size:14px;line-height:1.3}
-.news .btn{grid-area:2/2;justify-self:start;min-height:38px}
+.news .btn{grid-area:2/2;justify-self:start;min-height:42px}
 .news .icon-act{grid-area:1/3;align-self:start}
 
 /* Помощь */
@@ -422,7 +422,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
   h2{font-size:23px}
   .toolbar{gap:4px 10px;margin-bottom:10px}
   .toolbar .grow{min-width:0;flex-basis:100%}
-  .toolbar .check{min-height:36px}
+  .toolbar .check{min-height:42px}
   input[type=search]{min-width:0;width:100%;flex:1}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   .stat{flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px}
@@ -959,6 +959,11 @@ function renderBanner() {
     if (txt.scrollWidth <= txt.clientWidth + 1) break;
   }
 }
+let bannerT = 0;
+['resize', 'orientationchange'].forEach(ev => window.addEventListener(ev, () => {
+  clearTimeout(bannerT);
+  bannerT = setTimeout(() => { if (S && !$('#banner').hidden) renderBanner(); }, 200);
+}));
 
 $('#btnNotify').addEventListener('click', () => {
   if (!S) return;
@@ -2236,7 +2241,7 @@ function newsCard() {
   if (newsSeen()) return null;
   const close = () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* без хранилища просто покажем снова */ } render(); };
   return h('div', { class: 'news' }, h('span', { class: 'em', text: '✨' }),
-    h('div', { class: 'tx' }, 'Новое: порции и «хватает на N раз»', h('small', { text: 'Суп или плов сами встанут в меню на следующие дни.' })),
+    h('div', { class: 'tx' }, 'Новое: «хватает на N раз»', h('small', { text: 'Суп или плов сами встанут в меню на следующие дни.' })),
     h('button', { class: 'btn sm', onclick: () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* ничего */ } tab = 'help'; render(); window.scrollTo(0, 0); } }, 'Как это работает'),
     h('button', { class: 'icon-act', 'aria-label': 'Скрыть', onclick: close }, '×'));
 }

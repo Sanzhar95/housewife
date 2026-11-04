@@ -244,6 +244,11 @@ test('меню: геометрия шапки, плашки «Новое», сч
     const tx = await box(page, '.news .tx');
     assert.ok(tx.w >= news.w * 0.6, `текст плашки ${Math.round(tx.w)}px из ${Math.round(news.w)}px — меньше 60%`);
     assert.ok(await page.isVisible('#banner'), 'в тестовых данных есть продукты на исходе — строка видна');
+    assert.ok(tx.h <= 3 * 19.5 + 1, `текст плашки «Новое» ${tx.h}px — больше 3 строк`);
+    const newsBtn = await box(page, '.news .btn');
+    assert.ok(newsBtn.h >= 42, `кнопка «Как это работает» ${newsBtn.h}px, нужно ≥ 42`);
+    const clip = await page.evaluate(() => { const e = document.querySelector('#banner .txt'); return [e.scrollWidth, e.clientWidth]; });
+    assert.ok(clip[0] <= clip[1], `текст «Пора докупить» обрезан: ${clip[0]} > ${clip[1]}`);
     const banner = await box(page, '#banner');
     assert.ok(banner && banner.h <= 44, `строка «Пора докупить» ${banner && banner.h}px, нужно ≤ 44`);
     for (const t of ['stock', 'dishes']) {
@@ -252,6 +257,8 @@ test('меню: геометрия шапки, плашки «Новое», сч
       assert.ok(b.h <= 44, `«Пора докупить» на вкладке ${t}: ${b.h}px`);
     }
     await page.click('nav .tab[data-t=week]');
+    const chk = await box(page, '.toolbar .check');
+    assert.ok(chk.h >= 42, `строка «Только из того, что есть» ${chk.h}px, нужно ≥ 42`);
     const stats = await page.evaluate(() => [...document.querySelectorAll('.stats .stat')].map(e => e.getBoundingClientRect().height));
     assert.strictEqual(stats.length, 3);
     stats.forEach(h => assert.ok(h <= 110, `карточка-счётчик ${h}px, нужно ≤ 110`));
