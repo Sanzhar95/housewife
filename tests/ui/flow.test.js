@@ -155,8 +155,8 @@ test('блюда: загрузка из Excel — бланк, проверка, 
     await page.click('.auth .btn.primary');
     await page.waitForSelector('nav .tab');
     await page.click('nav .tab[data-t=dishes]');
-    assert.ok(await page.isVisible('text=📥 Загрузить блюда из Excel'));
-    assert.ok(await page.isVisible('text=📄 Бланк блюд'));
+    assert.ok(await page.isVisible('text=📥 Из Excel'));
+    assert.ok(await page.isVisible('text=📄 Бланк'));
 
     // свои блюда с уникальными названиями: пример из бланка пересекается с продуктами тестовой семьи
     const H = await page.evaluate(() => ImportDishes.HEAD);
@@ -167,7 +167,7 @@ test('блюда: загрузка из Excel — бланк, проверка, 
       ['Тест-гречка', 'гарнир', 'обед', '', 4, 1, '', 'Тест-крупа', 250, 'г']];
     const before = await page.evaluate(() => S.dishes.length);
 
-    await page.click('text=📥 Загрузить блюда из Excel');
+    await page.click('text=📥 Из Excel');
     await upload(template);
     await page.waitForSelector('#dlgBox .imp-row');
     assert.strictEqual(await page.locator('#dlgBox .imp-row').filter({ hasText: '🆕' }).count(), 3);
@@ -183,7 +183,7 @@ test('блюда: загрузка из Excel — бланк, проверка, 
       ['Тест-дубль-1', 'основное', '', '', '', '', '', 'Тест-дубль-продукт', 100, 'г'],
       ['Тест-дубль-2', 'салат', '', '', '', '', '', 'Тест-дубль-продукт', 50, 'г']];
     const before2 = await page.evaluate(() => S.dishes.length);
-    await page.click('text=📥 Загрузить блюда из Excel');
+    await page.click('text=📥 Из Excel');
     await upload(tpl2);
     await page.waitForSelector('#dlgBox .imp-row');
     await page.waitForTimeout(500);
@@ -195,7 +195,7 @@ test('блюда: загрузка из Excel — бланк, проверка, 
     assert.strictEqual(await page.evaluate(() => S.dishes.filter(d => d.name.startsWith('Тест-дубль')).length), 2);
 
     // повтор того же файла: всё «уже есть», кнопка «Закрыть»
-    await page.click('text=📥 Загрузить блюда из Excel');
+    await page.click('text=📥 Из Excel');
     await upload(template);
     await page.waitForSelector('#dlgBox .imp-row');
     assert.strictEqual(await page.locator('#dlgBox .imp-row').filter({ hasText: '✔️' }).count(), 3);
@@ -206,13 +206,13 @@ test('блюда: загрузка из Excel — бланк, проверка, 
     assert.strictEqual(await page.evaluate(() => S.dishes.length), before + 5);
 
     // только заголовок
-    await page.click('text=📥 Загрузить блюда из Excel');
+    await page.click('text=📥 Из Excel');
     await upload([template[0]]);
     await page.waitForSelector('#dlgBox >> text=В файле нет блюд');
     await page.keyboard.press('Escape');
 
     // чужой бланк (склада)
-    await page.click('text=📥 Загрузить блюда из Excel');
+    await page.click('text=📥 Из Excel');
     await upload([['Название', 'Ед.', 'Купить (подсказка)', 'Куплено'], ['Картофель', 'КГ', '', 3]]);
     await page.waitForSelector('text=Это не наш бланк');
   } finally { await browser.close(); server.close(); }
@@ -276,4 +276,74 @@ test('меню: геометрия шапки, плашки «Новое», сч
     assert.ok(dt.bottom < 844 - NAV, `«Сегодня» заканчивается на ${dt.bottom}px, нужно < ${844 - NAV}`);
     await ctx2.close();
   } finally { await browser.close(); server.close(); }
+});
+
+// «Склад», «Блюда», «Матрица» на 390×844: панель действий в один ряд, плавающая кнопка не перекрывает конец списка,
+// названия с заглавной буквы только на экране, нет «мин. 0», эмодзи и название блюда в матрице в одной строке.
+test('склад, блюда, матрица: геометрия и отображение названий (390×844)', { skip: !playwright }, async () => {
+  const server = await serve();
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await playwright.chromium.launch();
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })).newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  try {
+    await page.goto(base + '/');
+    await page.fill('input[type=email]', 'mama@example.com');
+    await page.fill('input[type=password]', 'password1');
+    await page.click('.auth .btn.primary');
+    await page.waitForSelector('nav .tab');
+    // подготовка отображения: продукт с маленькой буквы и нулевым минимумом, блюдо с длинным названием
+    await page.evaluate(() => {
+      S.products[0].name = 'болгарский перец'; S.products[0].min = 0;
+      S.dishes[0].name = 'бефстроганов с картофельным пюре и грибами';
+      window.__rawP = S.products[0].name; window.__rawD = S.dishes[0].name; render();
+    });
+    const box = (sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, w: r.width }; }, sel);
+    const fabClear = async (tab, cardSel) => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(100);
+      const last = await page.evaluate(s => { const l = [...document.querySelectorAll(s)].pop().getBoundingClientRect(); return l.bottom; }, cardSel);
+      const fab = await box('.fab');
+      assert.ok(last <= fab.top, `${tab}: последняя карточка заканчивается на ${last}px, плавающая кнопка начинается на ${fab.top}px`);
+    };
+
+    for (const [t, sel] of [['stock', '.tile'], ['dishes', '.dishes .card']]) {
+      await page.click(`nav .tab[data-t=${t}]`);
+      const row = await box('.actions-row');
+      assert.ok(row.h <= 56, `${t}: панель действий ${row.h}px, нужно ≤ 56 (один ряд)`);
+      const bh = await page.evaluate(() => [...document.querySelectorAll('.actions-row .btn')].map(b => b.getBoundingClientRect().height));
+      bh.forEach(x => assert.ok(x >= 42, `${t}: кнопка действий ${x}px, нужно ≥ 42`));
+      await fabClear(t, sel);
+      await page.evaluate(() => window.scrollTo(0, 0));
+    }
+
+    // склад: заглавная буква только на экране; поиск по исходному названию; без «мин. 0»
+    await page.click('nav .tab[data-t=stock]');
+    await page.fill('input[type=search]', 'болг');
+    const names = await page.$$eval('.tile h3', es => es.map(e => e.textContent));
+    assert.ok(names.includes('Болгарский перец'), 'на экране: ' + names.join(' | '));
+    assert.strictEqual(await page.evaluate(() => S.products[0].name), 'болгарский перец', 'данные не менялись');
+    assert.strictEqual(await page.evaluate(() => window.__rawP), 'болгарский перец');
+    const foot = await page.$$eval('.tile', es => es.map(e => ({ n: e.querySelector('h3').textContent, f: (e.querySelector('.tile-foot') || { textContent: '' }).textContent })));
+    assert.ok(!/мин\. 0/.test(foot.find(x => x.n === 'Болгарский перец').f), 'у минимума 0 нет подписи «мин. 0»');
+    // форма редактирования — по исходному значению
+    await page.click('.tile .icon-act');
+    assert.strictEqual(await page.inputValue('#dlgBox input[type=text]'), 'болгарский перец');
+    await page.keyboard.press('Escape');
+    await page.fill('input[type=search]', '');
+
+    // матрица: эмодзи и название блюда на одной строке
+    await page.click('nav .tab[data-t=matrix]');
+    const pos = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('.matrix tbody .rowbtn')].find(x => /бефстроганов/i.test(x.textContent));
+      const em = b.querySelector('.em'), nm = b.querySelector('.nm');
+      return em && nm ? [em.getBoundingClientRect().top, nm.getBoundingClientRect().top] : null;
+    });
+    assert.ok(pos, 'в ячейке блюда есть отдельные .em и .nm');
+    assert.ok(Math.abs(pos[0] - pos[1]) <= 4, `эмодзи (${pos[0]}) и название (${pos[1]}) на разных строках`);
+    const unit = await page.evaluate(() => { const th = document.querySelector('.matrix thead th:not(.rowh)'); return th.getBoundingClientRect().height; });
+    assert.ok(unit <= 96, `заголовок столбца ${unit}px — слишком высокий`);
+  } finally { await browser.close(); server.close(); }
+  assert.deepStrictEqual(errors, []);
 });

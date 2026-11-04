@@ -115,7 +115,9 @@ input[type=search]:focus{border-color:var(--accent);outline:none}
 .scroller::-webkit-scrollbar{display:none}
 .fchip{border:2px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 15px;font-weight:700;cursor:pointer;color:var(--muted);white-space:nowrap;min-height:40px}
 .fchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
-.actions-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.actions-row{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;padding:2px 0 4px}
+.actions-row::-webkit-scrollbar{display:none}
+.actions-row .btn{flex:none;white-space:nowrap;min-height:42px}
 
 /* Сводка */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
@@ -304,10 +306,13 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .matrix th,.matrix td{padding:7px 8px;border-right:1px solid var(--line)}
 .matrix thead th{vertical-align:bottom;min-width:92px;max-width:130px;line-height:1.25;text-align:center}
 .matrix thead th .em{font-size:22px;display:block}
-.matrix thead th small{display:block;font-weight:700;color:var(--muted)}
+.matrix thead th small{font-weight:700;color:var(--muted);font-size:11px;margin-left:3px}
 .matrix .rowh{position:sticky;left:0;background:var(--surface);z-index:1;min-width:200px;padding:4px}
 .matrix thead .rowh{background:var(--surface-2);z-index:2;text-align:left;padding:7px 12px}
-.rowbtn{border:0;background:none;width:100%;text-align:left;font-weight:700;padding:8px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:2px;white-space:nowrap}
+.rowbtn{border:0;background:none;width:100%;text-align:left;font-weight:700;padding:8px;border-radius:12px;cursor:pointer;display:flex;align-items:flex-start;gap:6px;white-space:nowrap}
+.rowbtn .dot{margin-top:6px}
+.rowbtn .em{flex:none;line-height:1.2}
+.rowbtn .nm{min-width:0}
 .rowbtn:hover{background:var(--surface-2)}
 .matrix tr.sel .rowh{background:var(--accent-soft)}
 .matrix tr.sel .rowbtn{color:var(--accent-deep)}
@@ -410,6 +415,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
   :root{--nav-h:68px}
   .wrap{padding:0 14px}
   .scroller{margin:0 -14px 14px;padding:2px 14px 4px}
+  .actions-row{margin:0 -14px 12px;padding:2px 14px 4px}
   .desk{display:none!important}
   .mob{display:initial}
   header.top{position:sticky}
@@ -454,8 +460,10 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .dishes,.prices{grid-template-columns:1fr;gap:10px}
   .months{height:170px;padding:14px 10px;gap:6px}
   .mcol .mv{font-size:10px}
-  .matrix .rowh{min-width:140px;max-width:150px}
+  .matrix .rowh{min-width:164px;max-width:176px}
   .rowbtn{white-space:normal;line-height:1.2}
+  .rowbtn{padding:8px 6px;gap:5px;font-size:15px}
+  .rowbtn .nm{overflow-wrap:break-word}
   .matrix thead th{min-width:84px}
   .row2{grid-template-columns:1fr}
   .ing-row{grid-template-columns:minmax(0,1fr) 78px 62px 40px;gap:6px}
@@ -592,6 +600,8 @@ function unitSelect(units, selected, label) {
 const withUnit = (input, sel) => h('div', { class: 'qu' }, input, sel);
 const money = n => Math.round(n).toLocaleString('ru-RU') + '\u00a0₸';
 const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
+/* Только для экрана: первая буква заглавная. В данных, поиске, сортировке и формах — исходное название. */
+const displayName = name => { const t = String(name == null ? '' : name); return t.charAt(0).toUpperCase() + t.slice(1); };
 const P = id => S.products.find(p => p.id === id);
 const D = id => S.dishes.find(d => d.id === id);
 const ingOf = id => S.ing.filter(i => i.dish === id && P(i.product));
@@ -1295,7 +1305,7 @@ function ingPills(dishId, max) {
   return h('div', { class: 'pills' }, shown.map(i => {
     const p = P(i.product);
     const lack = p.stock + EPS < i.qty;
-    return h('span', { class: 'pill' + (lack ? ' lack' : '') }, emo(p.name), p.name, h('small', { text: qtyStr(conv(i.qty, p.unit, i.unit), i.unit) }));
+    return h('span', { class: 'pill' + (lack ? ' lack' : '') }, emo(p.name), displayName(p.name), h('small', { text: qtyStr(conv(i.qty, p.unit, i.unit), i.unit) }));
   }), ings.length > shown.length ? h('span', { class: 'pill', text: `и ещё ${ings.length - shown.length}` }) : null);
 }
 
@@ -1333,7 +1343,7 @@ function pickDish(day, meal, kind, item) {
     return h('button', { class: 'pick-row' + (item && item.dish === d.id ? ' cur' : ''), onclick: async () => {
       const r = item ? await act('setItem', item.id, d.id) : await act('addItem', day, meal, kind, d.id, onlyAvail);
       if (r) $('#dlg').close();
-    } }, h('span', { class: 'em', text: emo(d.name, true) }), h('span', { class: 'nm', text: d.name }), chip(st));
+    } }, h('span', { class: 'em', text: emo(d.name, true) }), h('span', { class: 'nm', text: displayName(d.name) }), chip(st));
   };
   let groups;
   if (kind === 'main') {
@@ -1634,17 +1644,17 @@ function tile(p) {
   return h('div', { class: 'tile ' + (cls ? cls + 't' : '') },
     h('div', { class: 'tile-top' },
       h('div', { class: 'em-badge', text: emo(p.name) }),
-      h('div', {}, h('h3', { text: p.name }),
+      h('div', {}, h('h3', { text: displayName(p.name) }),
         p.stock <= 0 ? h('span', { class: 'chip bad', text: 'Закончился' })
           : isLow(p) ? h('span', { class: 'chip warn', text: 'Пора докупить' })
           : h('span', { class: 'chip ok', text: 'В наличии' }))),
     h('div', { class: 'amount' }, fmt(p.stock), h('small', { text: UNIT_LBL[p.unit] })),
     nice(p.stock, p.unit)[1] !== p.unit ? h('div', { class: 'amount-alt', text: '= ' + qtyNice(p.stock, p.unit) }) : null,
     h('div', { class: 'bar ' + cls }, h('i', { style: `width:${pct}%` })),
-    h('div', { class: 'tile-foot' }, h('span', { text: 'мин. ' + qtyNice(p.min, p.unit) }), lp != null ? h('span', { text: priceStr(lp, p.unit) }) : null),
+    p.min > 0 || lp != null ? h('div', { class: 'tile-foot' }, p.min > 0 ? h('span', { text: 'мин. ' + qtyNice(p.min, p.unit) }) : null, lp != null ? h('span', { text: priceStr(lp, p.unit) }) : null) : null,
     h('div', { class: 'tile-actions' },
       h('button', { class: 'btn sm', onclick: () => restockForm(p) }, '＋ Приход'),
-      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + p.name, onclick: () => productForm(p) }, '✏️')));
+      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + displayName(p.name), onclick: () => productForm(p) }, '✏️')));
 }
 
 function drawStock(host) {
@@ -1677,10 +1687,9 @@ function renderStock(v) {
     h('input', { type: 'search', placeholder: '🔍 Найти продукт', value: q.stock, 'aria-label': 'Поиск продукта', oninput: e => { q.stock = e.target.value; drawStock(host); } }),
     h('button', { class: 'btn primary desk', onclick: () => productForm(null) }, '＋ Добавить продукт')));
   v.append(h('div', { class: 'actions-row' },
-    h('button', { class: 'btn sm', onclick: pickExcel }, '📥 Загрузить из Excel'),
-    h('button', { class: 'btn sm', onclick: exportShopping }, '🛒 Список покупок'),
-    h('button', { class: 'btn sm', onclick: downloadTemplate }, '📄 Бланк склада')));
-  v.append(h('p', { class: 'muted small', style: 'margin:-6px 0 14px', text: 'Скачайте список или бланк, впишите «Куплено» и «Сумма» и загрузите тот же файл обратно.' }));
+    h('button', { class: 'btn sm', 'aria-label': 'Загрузить из Excel', onclick: pickExcel }, '📥 Из Excel'),
+    h('button', { class: 'btn sm', 'aria-label': 'Список покупок в Excel', onclick: exportShopping }, '🛒 Покупки'),
+    h('button', { class: 'btn sm', 'aria-label': 'Бланк склада', onclick: downloadTemplate }, '📄 Бланк')));
   v.append(chips, host);
   drawStock(host);
   v.append(h('button', { class: 'fab', onclick: () => productForm(null) }, h('b', { text: '＋' }), 'Продукт'));
@@ -1798,7 +1807,7 @@ function dishCard(d) {
   return h('article', { class: 'card' },
     h('div', { class: 'dish-top' },
       h('div', { class: 'em-badge', text: emo(d.name, true) }),
-      h('div', { class: 'meta' }, h('span', { class: 'type-tag', text: TYPE_LBL[d.type] + (meta ? ': ' + meta : '') }), h('h3', { text: d.name }), chip(st),
+      h('div', { class: 'meta' }, h('span', { class: 'type-tag', text: TYPE_LBL[d.type] + (meta ? ': ' + meta : '') }), h('h3', { text: displayName(d.name) }), chip(st),
         h('div', { class: 'chips-row' },
           h('span', { class: 'chip por', text: `👥 рецепт на ${per} порц.` + (d.portions > 0 ? '' : ' (по умолч.)') }),
           d.times > 1 ? h('span', { class: 'chip times', text: `🔁 хватает на ${d.times} ${timesWord(d.times)}` }) : null),
@@ -1808,7 +1817,7 @@ function dishCard(d) {
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary sm', disabled: !st.ok, onclick: () => cookFlow(d) }, '👩‍🍳 Приготовить'),
       h('button', { class: 'icon-act', title: 'Состав в матрице', 'aria-label': 'Показать в матрице', onclick: () => { mDish = d.id; tab = 'matrix'; render(); } }, '🧮'),
-      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + d.name, onclick: () => dishForm(d) }, '✏️')));
+      h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + displayName(d.name), onclick: () => dishForm(d) }, '✏️')));
 }
 
 function drawDishes(host) {
@@ -1841,8 +1850,8 @@ function renderDishes(v) {
     h('input', { type: 'search', placeholder: '🔍 Найти блюдо', value: q.dishes, 'aria-label': 'Поиск блюда', oninput: e => { q.dishes = e.target.value; drawDishes(host); } }),
     h('button', { class: 'btn primary desk', onclick: () => dishForm(null) }, '＋ Добавить блюдо')));
   v.append(h('div', { class: 'actions-row' },
-    h('button', { class: 'btn sm', onclick: pickDishesExcel }, '📥 Загрузить блюда из Excel'),
-    h('button', { class: 'btn sm', onclick: downloadDishTemplate }, '📄 Бланк блюд')));
+    h('button', { class: 'btn sm', 'aria-label': 'Загрузить блюда из Excel', onclick: pickDishesExcel }, '📥 Из Excel'),
+    h('button', { class: 'btn sm', 'aria-label': 'Бланк блюд', onclick: downloadDishTemplate }, '📄 Бланк')));
   v.append(chips, host);
   drawDishes(host);
   v.append(h('button', { class: 'fab', onclick: () => dishForm(null) }, h('b', { text: '＋' }), 'Блюдо'));
@@ -1891,7 +1900,7 @@ function renderMatrix(v) {
   const dishes = [...S.dishes].sort(byName);
   v.append(h('div', { class: 'scroller' },
     h('button', { class: 'fchip' + (!mDish ? ' on' : ''), onclick: () => { mDish = null; render(); } }, 'Все блюда'),
-    dishes.map(d => h('button', { class: 'fchip' + (mDish === d.id ? ' on' : ''), onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } }, emo(d.name, true) + ' ' + d.name))));
+    dishes.map(d => h('button', { class: 'fchip' + (mDish === d.id ? ' on' : ''), onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } }, emo(d.name, true) + ' ' + displayName(d.name)))));
 
   let prods = [...S.products].sort(byName);
   if (mDish) {
@@ -1899,7 +1908,7 @@ function renderMatrix(v) {
     const need = ingOf(mDish).map(i => i.product);
     prods = prods.filter(p => need.includes(p.id));
     v.append(h('div', { class: 'filter-note' },
-      h('span', { text: `${emo(d.name, true)} ${d.name}: продуктов в составе ${prods.length}` }),
+      h('span', { text: `${emo(d.name, true)} ${displayName(d.name)}: продуктов в составе ${prods.length}` }),
       h('button', { class: 'btn sm', onclick: () => dishForm(d) }, '✏️ Состав'),
       h('button', { class: 'btn sm', onclick: () => { mDish = null; render(); } }, 'Показать все')));
     if (!prods.length) {
@@ -1912,7 +1921,7 @@ function renderMatrix(v) {
   order.forEach(d => {
     const tr = h('tr', { 'data-d': d.id, class: mDish === d.id ? 'sel' : '' },
       h('th', { class: 'rowh' }, h('button', { class: 'rowbtn', title: 'Показать только продукты этого блюда', onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } },
-        h('span', { class: 'dot' }), emo(d.name, true) + ' ' + d.name)));
+        h('span', { class: 'dot' }), h('span', { class: 'em', text: emo(d.name, true) }), h('span', { class: 'nm', text: displayName(d.name) }))));
     prods.forEach(p => {
       const i = S.ing.find(x => x.dish === d.id && x.product === p.id);
       const u = i ? i.unit : p.unit;
@@ -1931,7 +1940,7 @@ function renderMatrix(v) {
     prods.map(p => h('td', { class: isLow(p) ? 'lowc' : '', text: fmt(p.stock) }))));
   v.append(h('div', { class: 'tablewrap' }, h('table', { class: 'matrix' },
     h('thead', {}, h('tr', {}, h('th', { class: 'rowh', text: 'Блюдо' }),
-      prods.map(p => h('th', {}, h('span', { class: 'em', text: emo(p.name) }), p.name, h('small', { text: UNIT_LBL[p.unit] }))))),
+      prods.map(p => h('th', {}, h('span', { class: 'em', text: emo(p.name) }), displayName(p.name), h('small', { text: UNIT_LBL[p.unit] }))))),
     tbody, tfoot)));
   updateMatrixMarks();
 }
@@ -2146,12 +2155,12 @@ const HELP = [
   { id: 'excel', ico: '📥', title: 'Excel: список покупок и загрузка', body: [
     'Один и тот же файл служит и списком покупок, и бланком для загрузки.',
     { ol: [
-      'Вкладка «Склад» → «🛒 Список покупок» (или «📄 Бланк склада» для большой закупки). Скачайте файл.',
+      'Вкладка «Склад» → «🛒 Покупки» (или «📄 Бланк» для большой закупки). Скачайте файл.',
       'В магазине впишите в жёлтые столбцы «Куплено» и, по желанию, «Сумма».',
-      'Вернитесь в «Склад» → «📥 Загрузить из Excel». Приложение покажет, что изменится, и спросит подтверждение.'] },
-    'Новые строки в файле станут новыми продуктами. Пустое «Куплено» пропускается.',
+      'Вернитесь в «Склад» → «📥 Из Excel». Приложение покажет, что изменится, и спросит подтверждение.'] },
+    'Новые строки в файле станут новыми продуктами. Пустое «Куплено» пропускается. Скачайте список или бланк, впишите «Куплено» и «Сумма» и загрузите тот же файл обратно.',
     { h: 'Загрузить сразу много блюд' },
-    'Вкладка «Блюда» → «📄 Бланк блюд» → заполните файл (в нём есть три примера; блюдо можно писать в несколько строк, по одному продукту в строке) → «📥 Загрузить блюда из Excel». Приложение покажет, что будет добавлено: 🆕 новое, ✔️ уже есть, ⚠️ ошибка и её причина. Блюда, которые у вас уже есть, не меняются, а недостающие продукты добавятся на склад с нулевым остатком.'] },
+    'Вкладка «Блюда» → «📄 Бланк» → заполните файл (в нём есть три примера; блюдо можно писать в несколько строк, по одному продукту в строке) → «📥 Из Excel». Приложение покажет, что будет добавлено: 🆕 новое, ✔️ уже есть, ⚠️ ошибка и её причина. Блюда, которые у вас уже есть, не меняются, а недостающие продукты добавятся на склад с нулевым остатком.'] },
 
   { id: 'matrix', ico: '🧮', title: 'Матрица и цены', body: [
     { ul: [
