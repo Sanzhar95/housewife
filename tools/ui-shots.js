@@ -18,7 +18,7 @@ srv.listen(0,'127.0.0.1',async()=>{
  await p.fill('input[type=email]','mama@example.com');await p.fill('input[type=password]','password1');await p.click('.auth .btn.primary');
  await p.waitForSelector('nav .tab');await shot('02-week');
  await p.screenshot({path:out+'/02b-week-full.png',fullPage:true});
- for(const t of ['stock','dishes','matrix','prices']){await p.click(`nav .tab[data-t=${t}]`);await shot('03-'+t);await p.screenshot({path:out+`/03b-${t}-full.png`,fullPage:true});}
+ for(const t of ['stock','dishes','prices']){await p.click(`nav .tab[data-t=${t}]`);await shot('03-'+t);await p.screenshot({path:out+`/03b-${t}-full.png`,fullPage:true});}
  await p.click('nav .tab[data-t=week]');
  await p.click('#btnNotify');await shot('04-settings');await p.keyboard.press('Escape');
  await p.click('nav .tab[data-t=dishes]');

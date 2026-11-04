@@ -58,8 +58,8 @@ body.busy #busy{opacity:1;animation:slide 1.1s ease-in-out infinite}
 #view.enter>*:nth-child(5){animation-delay:120ms}
 #view.enter>.fab{animation:none}
 .item.just .chip.ok{animation:pop .24s ease-out}
-.dchip,.rowbtn,.icon-act,.icon-btn,.tab{transition:transform .12s,background .15s,color .15s}
-.dchip:active,.rowbtn:active,.icon-act:active,.icon-btn:active,.tab:active{transform:scale(.97)}
+.dchip,.icon-act,.icon-btn,.tab{transition:transform .12s,background .15s,color .15s}
+.dchip:active,.icon-act:active,.icon-btn:active,.tab:active{transform:scale(.97)}
 dialog[open]::backdrop{animation:fade .2s ease-out}
 #toast.in{animation:toastin .2s ease-out}
 #toast.out{animation:toastout .18s ease-in forwards}
@@ -312,35 +312,13 @@ ul.plain{margin:10px 0 0;padding-left:20px}
 .bigchart svg{display:block;width:100%;height:auto}
 .hist td,.hist th{padding:9px 10px;font-size:14px}
 
-/* Таблицы и матрица */
+/* Таблицы */
 .tablewrap{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:auto}
 table{border-collapse:collapse;width:100%}
 th,td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
 thead th{background:var(--surface-2);font-weight:800;font-size:14px;color:var(--muted)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.matrix{width:auto;min-width:100%}
-.matrix th,.matrix td{padding:7px 8px;border-right:1px solid var(--line)}
-.matrix thead th{vertical-align:bottom;min-width:92px;max-width:130px;line-height:1.25;text-align:center}
-.matrix thead th .em{font-size:22px;display:block}
-.matrix thead th small{font-weight:700;color:var(--muted);font-size:11px;margin-left:3px}
-.matrix .rowh{position:sticky;left:0;background:var(--surface);z-index:1;min-width:200px;padding:4px}
-.matrix thead .rowh{background:var(--surface-2);z-index:2;text-align:left;padding:7px 12px}
-.rowbtn{border:0;background:none;width:100%;text-align:left;font-weight:700;padding:8px;border-radius:12px;cursor:pointer;display:flex;align-items:flex-start;gap:6px;white-space:nowrap}
-.rowbtn .dot{margin-top:6px}
-.rowbtn .em{flex:none;line-height:1.2}
-.rowbtn .nm{min-width:0}
-.rowbtn:hover{background:var(--surface-2)}
-.matrix tr.sel .rowh{background:var(--accent-soft)}
-.matrix tr.sel .rowbtn{color:var(--accent-deep)}
-.matrix tr.sel td{background:#f7f5ff}
-.matrix input{width:84px;min-height:40px;text-align:center;padding:6px 8px;border-radius:12px;border:2px solid transparent;background:var(--surface-2)}
-.matrix input:focus{border-color:var(--accent);background:var(--surface)}
-.matrix input.short{background:var(--bad-soft);color:var(--bad);border-color:#f2a3b0}
-.matrix tfoot th,.matrix tfoot td{background:var(--surface-2);font-weight:800;border-bottom:0}
-.matrix tfoot th{padding:9px 12px}
-.matrix tfoot td{text-align:center;font-variant-numeric:tabular-nums}
-.matrix tfoot td.lowc{color:var(--warn)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--line);flex:none}
 .dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
 .filter-note{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);color:var(--accent-deep);border-radius:16px;padding:10px 14px;margin-bottom:12px;font-weight:700}
@@ -368,7 +346,6 @@ dialog::backdrop{background:rgba(42,35,56,.45)}
 .ing-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 70px 40px;gap:8px;align-items:center;margin-bottom:8px}
 .ing-row .unit-sel{padding:10px 4px;font-weight:700}
 .qu{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px}
-.matrix td .cu{display:block;font-size:11px;color:var(--muted);font-weight:700;text-align:center;margin-top:2px}
 .amount-alt{font-size:13px;color:var(--muted);font-weight:700;margin-top:-4px}
 .ing-row select{padding:10px 6px}
 .icon-btn{border:0;background:none;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;border-radius:50%;width:40px;height:40px}
@@ -478,11 +455,6 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .dishes,.prices{grid-template-columns:1fr;gap:10px}
   .months{height:170px;padding:14px 10px;gap:6px}
   .mcol .mv{font-size:10px}
-  .matrix .rowh{min-width:164px;max-width:176px}
-  .rowbtn{white-space:normal;line-height:1.2}
-  .rowbtn{padding:8px 6px;gap:5px;font-size:15px}
-  .rowbtn .nm{overflow-wrap:break-word}
-  .matrix thead th{min-width:84px}
   .row2{grid-template-columns:1fr}
   .ing-row{grid-template-columns:minmax(0,1fr) 78px 62px 40px;gap:6px}
 
@@ -524,7 +496,6 @@ details.hs[open]>summary{color:var(--accent-deep)}
       <button class="tab" data-t="week"><span class="ico">🗓️</span><span>Меню</span></button>
       <button class="tab" data-t="stock"><span class="ico">🧺</span><span>Склад</span></button>
       <button class="tab" data-t="dishes"><span class="ico">🍲</span><span>Блюда</span></button>
-      <button class="tab" data-t="matrix"><span class="ico">🧮</span><span>Матрица</span></button>
       <button class="tab" data-t="prices"><span class="ico">💰</span><span>Цены</span></button>
     </nav>
   </div>
@@ -552,7 +523,6 @@ let tab = 'week';
 let onlyAvail = true;
 const q = { stock: '', dishes: '', prices: '', help: '' };
 let dishFilter = 'all', stockFilter = 'all', priceFilter = 'all';
-let mDish = null;
 let selDay = null;
 const genOpts = { meals: ['Завтрак', 'Обед', 'Ужин'], sides: true, leftovers: true };
 const MEAL_EMO = { 'Завтрак': '🌅', 'Обед': '☀️', 'Ужин': '🌙' };
@@ -1841,7 +1811,6 @@ function dishCard(d) {
     ings.length ? ingPills(d.id) : h('p', { class: 'muted', text: 'Добавьте продукты в состав.' }),
     h('div', { class: 'actions' },
       h('button', { class: 'btn primary sm', disabled: !st.ok, onclick: () => cookFlow(d) }, '👩‍🍳 Приготовить'),
-      h('button', { class: 'icon-act', title: 'Состав в матрице', 'aria-label': 'Показать в матрице', onclick: () => { mDish = d.id; tab = 'matrix'; render(); } }, '🧮'),
       h('button', { class: 'icon-act', title: 'Изменить', 'aria-label': 'Изменить ' + displayName(d.name), onclick: () => dishForm(d) }, '✏️')));
 }
 
@@ -1880,94 +1849,6 @@ function renderDishes(v) {
   v.append(chips, host);
   drawDishes(host);
   v.append(h('button', { class: 'fab', onclick: () => dishForm(null) }, h('b', { text: '＋' }), 'Блюдо'));
-}
-
-/* ───── Матрица ───── */
-async function setCell(dishId, productId, input) {
-  const old = input._old || '';
-  try {
-    document.body.classList.add('busy');
-    S = await call('setIngredient', dishId, productId, input.value, input.dataset.u);
-    input._old = input.value;
-    updateMatrixMarks();
-    renderBanner();
-  } catch (e) {
-    input.value = old;
-    toast(cleanErr(e), 'bad');
-  } finally {
-    document.body.classList.remove('busy');
-  }
-}
-
-function updateMatrixMarks() {
-  document.querySelectorAll('.matrix tbody input').forEach(inp => {
-    const p = P(inp.dataset.p);
-    const val = toNum(inp.value);
-    inp.classList.toggle('short', val != null && val > 0 && !!p && conv(val, inp.dataset.u, p.unit) > p.stock + EPS);
-  });
-  document.querySelectorAll('.matrix tr[data-d]').forEach(tr => {
-    const st = status(tr.dataset.d);
-    tr.querySelector('.dot').className = 'dot ' + (st.empty ? '' : st.ok ? 'ok' : 'bad');
-  });
-}
-
-function renderMatrix(v) {
-  if (mDish && !D(mDish)) mDish = null;
-  v.append(h('div', { class: 'toolbar' },
-    h('div', { class: 'grow' }, h('h2', { text: 'Матрица' }),
-      h('div', { class: 'muted', text: 'Нажмите на блюдо — останутся только его продукты. В ячейке количество на одну готовку.' })),
-    h('button', { class: 'btn desk', onclick: () => dishForm(null) }, '＋ Блюдо'),
-    h('button', { class: 'btn desk', onclick: () => productForm(null) }, '＋ Продукт')));
-  if (!S.dishes.length || !S.products.length) {
-    v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🧮' }), 'Матрица появится, когда будет хотя бы одно блюдо и один продукт.'));
-    return;
-  }
-  const dishes = [...S.dishes].sort(byName);
-  v.append(h('div', { class: 'scroller' },
-    h('button', { class: 'fchip' + (!mDish ? ' on' : ''), onclick: () => { mDish = null; render(); } }, 'Все блюда'),
-    dishes.map(d => h('button', { class: 'fchip' + (mDish === d.id ? ' on' : ''), onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } }, emo(d.name, true) + ' ' + displayName(d.name)))));
-
-  let prods = [...S.products].sort(byName);
-  if (mDish) {
-    const d = D(mDish);
-    const need = ingOf(mDish).map(i => i.product);
-    prods = prods.filter(p => need.includes(p.id));
-    v.append(h('div', { class: 'filter-note' },
-      h('span', { text: `${emo(d.name, true)} ${displayName(d.name)}: продуктов в составе ${prods.length}` }),
-      h('button', { class: 'btn sm', onclick: () => dishForm(d) }, '✏️ Состав'),
-      h('button', { class: 'btn sm', onclick: () => { mDish = null; render(); } }, 'Показать все')));
-    if (!prods.length) {
-      v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🥄' }), 'У блюда пока нет продуктов. Нажмите «Состав», чтобы добавить.'));
-      return;
-    }
-  }
-  const order = mDish ? [D(mDish)].concat(dishes.filter(d => d.id !== mDish)) : dishes;
-  const tbody = h('tbody');
-  order.forEach(d => {
-    const tr = h('tr', { 'data-d': d.id, class: mDish === d.id ? 'sel' : '' },
-      h('th', { class: 'rowh' }, h('button', { class: 'rowbtn', title: 'Показать только продукты этого блюда', onclick: () => { mDish = mDish === d.id ? null : d.id; render(); } },
-        h('span', { class: 'dot' }), h('span', { class: 'em', text: emo(d.name, true) }), h('span', { class: 'nm', text: displayName(d.name) }))));
-    prods.forEach(p => {
-      const i = S.ing.find(x => x.dish === d.id && x.product === p.id);
-      const u = i ? i.unit : p.unit;
-      const shown = i ? numOut(conv(i.qty, p.unit, i.unit)) : '';
-      const inp = h('input', {
-        type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: shown,
-        'data-p': p.id, 'data-u': u, 'aria-label': `${d.name}: ${p.name}, ${UNIT_LBL[u]}`,
-        onchange: e => setCell(d.id, p.id, e.target)
-      });
-      inp._old = shown;
-      tr.append(h('td', {}, inp, i ? h('small', { class: 'cu', text: UNIT_LBL[u] }) : null));
-    });
-    tbody.append(tr);
-  });
-  const tfoot = h('tfoot', {}, h('tr', {}, h('th', { class: 'rowh', text: '🧺 На складе' }),
-    prods.map(p => h('td', { class: isLow(p) ? 'lowc' : '', text: fmt(p.stock) }))));
-  v.append(h('div', { class: 'tablewrap' }, h('table', { class: 'matrix' },
-    h('thead', {}, h('tr', {}, h('th', { class: 'rowh', text: 'Блюдо' }),
-      prods.map(p => h('th', {}, h('span', { class: 'em', text: emo(p.name) }), displayName(p.name), h('small', { text: UNIT_LBL[p.unit] }))))),
-    tbody, tfoot)));
-  updateMatrixMarks();
 }
 
 /* ───── Цены и расходы ───── */
@@ -2187,9 +2068,8 @@ const HELP = [
     { h: 'Загрузить сразу много блюд' },
     'Вкладка «Блюда» → «📄 Бланк» → заполните файл (в нём есть три примера; блюдо можно писать в несколько строк, по одному продукту в строке) → «📥 Из Excel». Приложение покажет, что будет добавлено: 🆕 новое, ✔️ уже есть, ⚠️ ошибка и её причина. Блюда, которые у вас уже есть, не меняются, а недостающие продукты добавятся на склад с нулевым остатком.'] },
 
-  { id: 'matrix', ico: '🧮', title: 'Матрица и цены', body: [
+  { id: 'prices', ico: '💰', title: 'Цены', body: [
     { ul: [
-      '🧮 Матрица — таблица «блюда × продукты». Нажмите на блюдо, чтобы остались только его продукты. Числа в ячейках можно править; розовое — не хватает на складе.',
       '💰 Цены — сколько потрачено, как менялись цены, какие продукты подорожали. Чтобы здесь что-то появилось, указывайте сумму при приходе.'] }] },
 
   { id: 'settings', ico: '⚙️', title: 'Настройки и семья', body: [
@@ -2291,7 +2171,7 @@ function render() {
   v.replaceChildren();
   v.classList.toggle('enter', enterNext);
   enterNext = false;
-  ({ week: renderWeek, stock: renderStock, dishes: renderDishes, matrix: renderMatrix, prices: renderPrices, log: renderLog, help: renderHelp })[tab](v);
+  ({ week: renderWeek, stock: renderStock, dishes: renderDishes, prices: renderPrices, log: renderLog, help: renderHelp })[tab](v);
   // «пружинка» у блюд, которые только что стали приготовленными (не при первой отрисовке и не при смене вкладки)
   const nowDone = new Set((S.plan || []).filter(i => i.done).map(i => i.id));
   if (prevDone) v.querySelectorAll('.item[data-id]').forEach(el => { if (nowDone.has(el.dataset.id) && !prevDone.has(el.dataset.id)) el.classList.add('just'); });

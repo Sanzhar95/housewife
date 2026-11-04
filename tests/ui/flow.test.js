@@ -278,9 +278,9 @@ test('меню: геометрия шапки, плашки «Новое», сч
   } finally { await browser.close(); server.close(); }
 });
 
-// «Склад», «Блюда», «Матрица» на 390×844: панель действий в один ряд, плавающая кнопка не перекрывает конец списка,
-// названия с заглавной буквы только на экране, нет «мин. 0», эмодзи и название блюда в матрице в одной строке.
-test('склад, блюда, матрица: геометрия и отображение названий (390×844)', { skip: !playwright }, async () => {
+// «Склад», «Блюда» на 390×844: панель действий в один ряд, плавающая кнопка не перекрывает конец списка,
+// названия с заглавной буквы только на экране, нет «мин. 0».
+test('склад, блюда: геометрия и отображение названий (390×844)', { skip: !playwright }, async () => {
   const server = await serve();
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await playwright.chromium.launch();
@@ -332,18 +332,9 @@ test('склад, блюда, матрица: геометрия и отобра
     assert.strictEqual(await page.inputValue('#dlgBox input[type=text]'), 'болгарский перец');
     await page.keyboard.press('Escape');
     await page.fill('input[type=search]', '');
-
-    // матрица: эмодзи и название блюда на одной строке
-    await page.click('nav .tab[data-t=matrix]');
-    const pos = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('.matrix tbody .rowbtn')].find(x => /бефстроганов/i.test(x.textContent));
-      const em = b.querySelector('.em'), nm = b.querySelector('.nm');
-      return em && nm ? [em.getBoundingClientRect().top, nm.getBoundingClientRect().top] : null;
-    });
-    assert.ok(pos, 'в ячейке блюда есть отдельные .em и .nm');
-    assert.ok(Math.abs(pos[0] - pos[1]) <= 4, `эмодзи (${pos[0]}) и название (${pos[1]}) на разных строках`);
-    const unit = await page.evaluate(() => { const th = document.querySelector('.matrix thead th:not(.rowh)'); return th.getBoundingClientRect().height; });
-    assert.ok(unit <= 96, `заголовок столбца ${unit}px — слишком высокий`);
+    // вкладки «Матрица» больше нет
+    assert.strictEqual(await page.locator('nav .tab[data-t=matrix]').count(), 0);
+    assert.strictEqual(await page.locator('nav .tab').count(), 4);
   } finally { await browser.close(); server.close(); }
   assert.deepStrictEqual(errors, []);
 });
