@@ -864,7 +864,7 @@ function pickDishesExcel() {
     const f = inp.files[0];
     if (!f) return;
     try {
-      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
       const parsed = ImportDishes.parse(aoa, S);
       if (!parsed.ok) { toast(parsed.error, 'bad'); return; }

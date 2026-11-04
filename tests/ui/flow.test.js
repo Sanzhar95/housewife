@@ -178,6 +178,22 @@ test('блюда: загрузка из Excel — бланк, проверка, 
     await page.waitForFunction(n => S.dishes.length === n + 3, before);
     await page.waitForFunction(() => !document.getElementById('dlg').open);
 
+    // двойной тап по «Загрузить (N)»: блюда создаются один раз
+    const tpl2 = [H,
+      ['Тест-дубль-1', 'основное', '', '', '', '', '', 'Тест-дубль-продукт', 100, 'г'],
+      ['Тест-дубль-2', 'салат', '', '', '', '', '', 'Тест-дубль-продукт', 50, 'г']];
+    const before2 = await page.evaluate(() => S.dishes.length);
+    await page.click('text=📥 Загрузить блюда из Excel');
+    await upload(tpl2);
+    await page.waitForSelector('#dlgBox .imp-row');
+    await page.waitForTimeout(500);
+    await page.evaluate(() => { const b = document.querySelector('#dlgBox .dlg-actions .btn.primary'); b.click(); b.click(); });
+    await page.waitForFunction(n => S.dishes.length >= n + 2, before2);
+    await page.waitForFunction(() => !document.getElementById('dlg').open);
+    await page.waitForTimeout(500);
+    assert.strictEqual(await page.evaluate(() => S.dishes.length), before2 + 2);
+    assert.strictEqual(await page.evaluate(() => S.dishes.filter(d => d.name.startsWith('Тест-дубль')).length), 2);
+
     // повтор того же файла: всё «уже есть», кнопка «Закрыть»
     await page.click('text=📥 Загрузить блюда из Excel');
     await upload(template);
@@ -187,7 +203,7 @@ test('блюда: загрузка из Excel — бланк, проверка, 
     assert.ok(await page.isVisible('#dlgBox .btn.primary:has-text("Закрыть")'));
     await shot('11-dishes-import-again');
     await page.click('#dlgBox .btn.primary:has-text("Закрыть")');
-    assert.strictEqual(await page.evaluate(() => S.dishes.length), before + 3);
+    assert.strictEqual(await page.evaluate(() => S.dishes.length), before + 5);
 
     // только заголовок
     await page.click('text=📥 Загрузить блюда из Excel');

@@ -165,3 +165,17 @@ test('журнал и неизменность исходного состоян
   assert.strictEqual(e[0].details, 'блюд: 1, новых продуктов: 1, пропущено: 1');
   assert.strictEqual(s.plan.length, t.S.plan.length);
 });
+
+test('importDishes: блюдо и продукт с именами constructor/__proto__ — обычные имена', () => {
+  const t = mk();
+  const s = imp(t, [
+    { name: 'constructor', ing: [{ product: '__proto__', qty: 2, unit: 'шт' }] },
+    { name: 'constructor', ing: [] },
+    { name: '__proto__', ing: [] }
+  ]);
+  assert.ok(dishByName(s, 'constructor'));
+  assert.ok(dishByName(s, '__proto__'));
+  assert.strictEqual(s.dishes.filter(d => d.name === 'constructor').length, 1);
+  assert.ok(prodByName(s, '__proto__'));
+  assert.match(s.notice, /constructor \(уже есть\)/);
+});

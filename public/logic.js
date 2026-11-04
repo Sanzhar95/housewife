@@ -877,7 +877,7 @@ function importDishes(rows) {
     const list = (rows || []).filter(r => r && nameKey_(r.name));
     if (!list.length) { const st = state_(); st.notice = 'Нечего загружать.'; return st; }
     const m = load_();
-    const dishKeys = {};
+    const dishKeys = Object.create(null);
     m.dishes.forEach(d => { dishKeys[nameKey_(d.name)] = true; });
     let created = 0, newProducts = 0;
     const skipped = [];

@@ -132,8 +132,8 @@ test('числа: запятая, пробел-разделитель тысяч
   assert.strictEqual(d.status, 'new', d.err);
   assert.strictEqual(d.portions, 1.5);
   assert.strictEqual(d.ing[0].qty, 0.5);
-  assert.strictEqual(d.ing[1].qty, 1.5);       // 1500 мл = 1,5 л в единице продукта
-  assert.strictEqual(d.ing[1].unit, 'Л');
+  assert.strictEqual(d.ing[1].qty, 1500);      // единица как в файле: 1500 мл
+  assert.strictEqual(d.ing[1].unit, 'МЛ');
   assert.strictEqual(d.ing[2].qty, 15);
 });
 
@@ -175,7 +175,7 @@ test('единица у существующего продукта пустая
   ], ST);
   assert.strictEqual(d.status, 'new', d.err);
   assert.deepStrictEqual(d.ing[0], { product: 'Рис', qty: 2, unit: 'КГ', isNew: false });
-  assert.deepStrictEqual(d.ing[1], { product: 'Молоко', qty: 0.5, unit: 'Л', isNew: false });
+  assert.deepStrictEqual(d.ing[1], { product: 'Молоко', qty: 500, unit: 'МЛ', isNew: false });
 });
 
 test('ё/е и регистр при поиске блюда и продукта; блюдо уже есть -> exists', () => {
@@ -196,8 +196,8 @@ test('один продукт дважды в блюде суммируется 
     row('', '', '', '', '', '', '', 'рис', 0.2, 'кг')
   ], ST);
   assert.strictEqual(d.ing.length, 1);
-  assert.strictEqual(d.ing[0].qty, 0.5);
-  assert.strictEqual(d.ing[0].unit, 'КГ');
+  assert.strictEqual(d.ing[0].qty, 500);       // в единице первой строки (г)
+  assert.strictEqual(d.ing[0].unit, 'Г');
 });
 
 test('newProducts: уникальные новые продукты только у блюд со статусом new', () => {
@@ -285,4 +285,72 @@ test('toRows: только new, в формате importDishes, проходит
   assert.ok(!/Пропущено/.test(s.notice), s.notice);
   assert.strictEqual(s.dishes.length, state.dishes.length + rows.length);
   assert.match(s.notice, new RegExp('новых продуктов: ' + p.newProducts));
+});
+
+test('дата в ячейке (Excel хранит «1.5» как дату) -> ошибка с номером строки: количество, порций, раз', () => {
+  const dt = new Date(Date.UTC(2026, 0, 5));
+  const q = one([row('Х', '', '', '', '', '', '', 'Рис', dt, 'кг')], ST);
+  assert.strictEqual(q.status, 'err');
+  assert.match(q.err, /строка 2: у «Рис» количество — не число/);
+  const p = one([row('Х', '', '', '', dt)]);
+  assert.strictEqual(p.status, 'err');
+  assert.match(p.err, /строка 2/);
+  const t = one([row('Х', '', '', '', '', dt)]);
+  assert.strictEqual(t.status, 'err');
+  assert.match(t.err, /строка 2/);
+  assert.strictEqual(one([row('Х', '', '', '', '', true)]).status, 'err');
+});
+
+test('единица как в файле: «Рис 300 г» для продукта в КГ остаётся 300 Г; сумма в единице первой строки', () => {
+  const d = one([row('Х', '', '', '', '', '', '', 'Рис', 300, 'г')], ST);
+  assert.deepStrictEqual(d.ing[0], { product: 'Рис', qty: 300, unit: 'Г', isNew: false });
+  const s = one([
+    row('Х', '', '', '', '', '', '', 'Рис', 0.2, 'кг'),
+    row('', '', '', '', '', '', '', 'Рис', 300, 'г')
+  ], ST);
+  assert.deepStrictEqual(s.ing[0], { product: 'Рис', qty: 0.5, unit: 'КГ', isNew: false });
+});
+
+test('количество, которое после перевода округляется до 0 -> ошибка блюда', () => {
+  const d = one([row('Х', '', '', '', '', '', '', 'Рис', 0.0001, 'г')], ST);
+  assert.strictEqual(d.status, 'err');
+  assert.match(d.err, /строка 2: .*количество слишком мало/);
+});
+
+test('отрицательное количество -> «должно быть больше 0»; пустое -> «не указано»', () => {
+  const n = one([row('Х', '', '', '', '', '', '', 'Рис', -2, 'кг')], ST);
+  assert.match(n.err, /количество должно быть больше 0/);
+  assert.match(one([row('Х', '', '', '', '', '', '', 'Рис', '', 'кг')], ST).err, /не указано количество/);
+});
+
+test('названия constructor и __proto__ — обычные имена блюд и продуктов', () => {
+  const st = { products: [{ id: 'p9', name: '__proto__', unit: 'ШТ' }], dishes: [{ id: 'd9', name: 'constructor' }] };
+  const p = run([
+    row('constructor', '', '', '', '', '', '', 'Рис', 1, 'кг'),
+    row('__proto__', '', '', '', '', '', '', '__proto__', 2, 'шт'),
+    row('constructor2', '', '', '', '', '', '', 'constructor', 1, 'кг'),
+    row('', '', '', '', '', '', '', 'constructor', 500, 'г')
+  ], st);
+  assert.ok(p.ok);
+  assert.strictEqual(p.dishes[0].status, 'exists');
+  assert.strictEqual(p.dishes[1].status, 'new', p.dishes[1].err);
+  assert.strictEqual(p.dishes[1].ing[0].isNew, false);
+  assert.strictEqual(p.dishes[2].status, 'new', p.dishes[2].err);
+  assert.deepStrictEqual(p.dishes[2].ing[0], { product: 'constructor', qty: 1.5, unit: 'КГ', isNew: true });
+  const q = ImportDishes.parse([HEAD, row('constructor', '', '', '', '', '', '', 'Рис', 1, 'кг')], EMPTY);
+  assert.strictEqual(q.dishes[0].status, 'new');
+});
+
+test('круг: parse + toRows + Logic.importDishes -> qty 0.3 КГ-продукта, unit Г', () => {
+  const clock = det.clock('2026-11-03T12:00:00+05:00');
+  const L = Logic.create({ rng: det.rng(1), id: det.idGen(500), now: clock.now, today: clock.today });
+  const S0 = JSON.parse(JSON.stringify(snapshot));
+  const rice = S0.products.find(p => p.name === 'Рис');
+  const p = ImportDishes.parse([HEAD, row('Рис с молоком', '', '', '', '', '', '', 'Рис', 300, 'г')], S0);
+  assert.strictEqual(p.dishes[0].status, 'new', p.dishes[0].err);
+  const s = L.apply('importDishes', S0, [ImportDishes.toRows(p)]);
+  const d = s.dishes.find(x => x.name === 'Рис с молоком');
+  const i = s.ing.find(x => x.dish === d.id && x.product === rice.id);
+  assert.strictEqual(i.qty, 0.3);
+  assert.strictEqual(i.unit, 'Г');
 });

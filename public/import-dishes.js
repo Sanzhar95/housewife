@@ -47,7 +47,9 @@ function normUnit(u) {
 
 /** Число из ячейки: 0,5 / 1 500 / 1 500. Пусто → null, не число → NaN. */
 function parseNum(v) {
+  if (v == null) return null;
   if (typeof v === 'number') return isFinite(v) ? v : NaN;
+  if (typeof v !== 'string') return NaN;   // даты (Excel хранит «1.5» как дату), логические и прочее — не число
   const s = String(v == null ? '' : v).replace(/\s+/g, '').replace(',', '.');
   if (s === '') return null;
   return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(s) ? Number(s) : NaN;
@@ -103,7 +105,7 @@ function parse(aoa, state) {
 
   // группировка по блюдам (одинаковые названия объединяются, пустое название продолжает предыдущее)
   const groups = [];
-  const byKey = {};
+  const byKey = Object.create(null);
   let cur = null;
   for (const [n, r] of body) {
     const name = clean(r[0]);
@@ -121,13 +123,13 @@ function parse(aoa, state) {
   if (groups.filter(g => !g.orphan).length > MAX_DISHES) return fail('Слишком много блюд: за один раз можно загрузить не больше ' + MAX_DISHES + '.');
 
   const st = state || {};
-  const prodByKey = {};
+  const prodByKey = Object.create(null);
   (st.products || []).forEach(p => { const k = norm(p.name); if (!prodByKey[k]) prodByKey[k] = p; });
-  const dishKeys = {};
+  const dishKeys = Object.create(null);
   (st.dishes || []).forEach(d => { dishKeys[norm(d.name)] = true; });
 
-  const fileProducts = {};   // продукты, которые создадут уже принятые блюда файла: ключ → { name, unit }
-  const newKeys = {};
+  const fileProducts = Object.create(null);   // продукты, которые создадут уже принятые блюда файла: ключ → { name, unit }
+  const newKeys = Object.create(null);
   const dishes = [];
 
   for (const g of groups) {
@@ -159,7 +161,7 @@ function parse(aoa, state) {
     }
 
     // состав
-    const local = {};   // новые продукты этого блюда: ключ → { name, unit }
+    const local = Object.create(null);   // новые продукты этого блюда: ключ → { name, unit }
     const items = [];   // { key, name, unit, qty, isNew }
     for (const [n, r] of g.lines) {
       const pn = clean(r[7]);
@@ -170,7 +172,9 @@ function parse(aoa, state) {
         if (q !== null || uRaw) e(n, 'указано количество, а продукта нет');
         continue;
       }
-      if (q === null || isNaN(q) || !(q > 0)) { e(n, q !== null && isNaN(q) ? 'у «' + pn + '» количество — не число' : 'у «' + pn + '» не указано количество'); continue; }
+      if (q === null) { e(n, 'у «' + pn + '» не указано количество'); continue; }
+      if (isNaN(q)) { e(n, 'у «' + pn + '» количество — не число'); continue; }
+      if (!(q > 0)) { e(n, 'у «' + pn + '» количество должно быть больше 0'); continue; }
       let lu = '';
       if (uRaw) {
         lu = normUnit(uRaw);
@@ -190,9 +194,11 @@ function parse(aoa, state) {
         local[key] = { name, unit };
       }
       if (lu && !sameFam(lu, unit)) { e(n, '«' + name + '» считается в ' + unit + ', а в файле указано ' + lu); continue; }
-      const qty = conv(q, lu || unit, unit);
+      const lineUnit = lu || unit;
+      if (!(conv(q, lineUnit, unit) > 0)) { e(n, 'у «' + name + '» количество слишком мало'); continue; }
       const same = items.find(x => x.key === key);
-      if (same) same.qty = r6(same.qty + qty); else items.push({ key, name, unit, qty, isNew });
+      if (same) same.qty = r6(same.qty + conv(q, lineUnit, same.unit));   // суммируем в единице первой строки
+      else items.push({ key, name, unit: lineUnit, pu: unit, qty: q, isNew });
     }
 
     if (errs.length) {
