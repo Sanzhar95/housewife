@@ -347,3 +347,76 @@ test('склад, блюда, матрица: геометрия и отобра
   } finally { await browser.close(); server.close(); }
   assert.deepStrictEqual(errors, []);
 });
+
+test('анимации: reduce выключает всё; шторка выезжает; двойной тап не дублирует; вкладка интерактивна сразу', { skip: !playwright }, async () => {
+  const server = await serve();
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await playwright.chromium.launch();
+  const login = async (page) => {
+    await page.goto(base + '/');
+    await page.fill('input[type=email]', 'mama@example.com');
+    await page.fill('input[type=password]', 'password1');
+    await page.click('.auth .btn.primary');
+    await page.waitForSelector('nav .tab');
+    await page.waitForSelector('.day-title');
+  };
+  const sec = v => parseFloat(v) || 0;
+  const anim = (page, sel, pseudo) => page.evaluate(([s, p]) => {
+    const e = document.querySelector(s); const c = getComputedStyle(e, p || null);
+    return { name: c.animationName, dur: c.animationDuration, td: c.transitionDuration };
+  }, [sel, pseudo]);
+  try {
+    // 1) reduce: у всего нет анимаций и переходов
+    const rctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const rp = await rctx.newPage();
+    await login(rp);
+    await rp.evaluate(() => toast('Проверка'));
+    await rp.evaluate(() => modal({ title: 'T', body: document.createTextNode('x'), onOk: () => {} }));
+    for (const [s, p] of [['.btn'], ['#dlg'], ['#dlg', '::backdrop'], ['#toast'], ['.item'], ['.chip']]) {
+      const a = await anim(rp, s, p);
+      assert.strictEqual(a.name, 'none', `reduce: ${s}${p || ''} animation-name=${a.name}`);
+      assert.strictEqual(sec(a.td), 0, `reduce: ${s}${p || ''} transition=${a.td}`);
+    }
+    await rctx.close();
+
+    // 2) без reduce: шторка и затемнение анимируются, ≤0.25с; toast — тоже
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'no-preference' });
+    const page = await ctx.newPage();
+    await login(page);
+    await page.evaluate(() => modal({ title: 'T', body: document.createTextNode('x'), onOk: () => {} }));
+    for (const [s, p] of [['#dlg'], ['#dlg', '::backdrop'], ['#toast']]) {
+      if (s === '#toast') await page.evaluate(() => toast('Проверка'));
+      const a = await anim(page, s, p);
+      assert.notStrictEqual(a.name, 'none', `${s}${p || ''} без анимации`);
+      assert.ok(sec(a.dur) > 0 && sec(a.dur) <= 0.25, `${s}${p || ''} длительность ${a.dur}`);
+    }
+    await page.keyboard.press('Escape');
+    assert.ok(await page.evaluate(() => !document.getElementById('dlg').open), 'Escape закрывает шторку сразу');
+
+    // 3) двойной быстрый тап «Готовить» — одно действие
+    const before = await page.evaluate(() => S.plan.filter(i => i.done).length);
+    const btn = page.locator('.item-actions .btn.primary:not([disabled])', { hasText: 'Готовить' }).first();
+    await btn.click();
+    await page.waitForSelector('#dlg[open] .btn.primary');
+    const ok = page.locator('#dlg[open] .btn.primary').last();
+    await ok.dblclick({ delay: 10 }).catch(() => {});
+    await page.waitForFunction(b => S.plan.filter(i => i.done).length > b, before);
+    await page.waitForTimeout(400);
+    const after = await page.evaluate(() => S.plan.filter(i => i.done).length);
+    assert.strictEqual(after, before + 1, `готово блюд: было ${before}, стало ${after}`);
+
+    // 4) смена вкладки: контент кликается сразу, карточки появляются с задержкой ≤120мс
+    await page.click('nav .tab[data-t=stock]');
+    const first = page.locator('.tile .icon-act').first();
+    await first.click({ timeout: 1000 });
+    assert.ok(await page.locator('#dlg[open]').count(), 'клик по первой карточке сразу после смены вкладки сработал');
+    await page.keyboard.press('Escape');
+    await page.click('nav .tab[data-t=dishes]');
+    const maxDelay = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('#view > *')].map(e => {
+      const c = getComputedStyle(e); return Math.max(...c.animationDelay.split(',').map(parseFloat)) * 1000;
+    })));
+    assert.ok(maxDelay <= 120, 'стаггер ' + maxDelay + ' мс');
+    const names = await page.evaluate(() => [...document.querySelectorAll('#view > *')].map(e => getComputedStyle(e).animationName));
+    assert.ok(names.some(n => n !== 'none'), 'карточки при смене вкладки анимируются');
+  } finally { await browser.close(); server.close(); }
+});

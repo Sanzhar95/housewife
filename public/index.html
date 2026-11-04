@@ -46,7 +46,23 @@ button,input,select{font:inherit;color:inherit}
 body.busy #busy{opacity:1;animation:slide 1.1s ease-in-out infinite}
 @keyframes slide{0%{transform:scaleX(.05)}60%{transform:scaleX(.8)}100%{transform:scaleX(1);opacity:.2}}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} body.busy #busy{transform:scaleX(1)} }
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:none}}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes toastout{from{opacity:1;transform:translateX(-50%)}to{opacity:0;transform:translate(-50%,6px)}}
+#view.enter>*:nth-child(-n+5){animation:rise .18s ease-out backwards}
+#view.enter>*:nth-child(2){animation-delay:30ms}
+#view.enter>*:nth-child(3){animation-delay:60ms}
+#view.enter>*:nth-child(4){animation-delay:90ms}
+#view.enter>*:nth-child(5){animation-delay:120ms}
+.item.just .chip.ok{animation:pop .24s ease-out}
+.tile,.dchip,.rowbtn,.icon-act,.icon-btn,.tab{transition:transform .12s,background .15s,color .15s}
+.tile:active,.dchip:active,.rowbtn:active,.icon-act:active,.icon-btn:active,.tab:active{transform:scale(.97)}
+dialog[open]::backdrop{animation:fade .2s ease-out}
+#toast.in{animation:toastin .2s ease-out}
+#toast.out{animation:toastout .18s ease-in forwards}
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after,::backdrop{transition:none!important;animation:none!important} body.busy #busy{transform:scaleX(1)} }
 
 .wrap{max-width:1120px;margin:0 auto;padding:0 18px}
 
@@ -333,6 +349,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 dialog{border:0;border-radius:26px;padding:0;background:var(--surface);color:var(--ink);width:min(470px,calc(100vw - 24px));box-shadow:0 24px 70px rgba(42,35,56,.35)}
 dialog.wide{width:min(700px,calc(100vw - 24px))}
 dialog::backdrop{background:rgba(42,35,56,.45)}
+@media (min-width:701px){dialog[open]{animation:rise .2s ease-out}}
 #dlgBox{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
 .dlg-head{padding:22px 24px 6px;display:flex;align-items:center;gap:10px}
 .dlg-head h3{font-size:22px;flex:1}
@@ -479,7 +496,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
   #toast{bottom:calc(var(--nav-h) + 86px + env(safe-area-inset-bottom,0px))}
 
   /* диалоги — как шторка снизу */
-  dialog,dialog.wide{width:100%;max-width:100%;margin:auto 0 0;border-radius:26px 26px 0 0;max-height:92vh;animation:up .22s ease-out}
+  dialog,dialog.wide{width:100%;max-width:100%;margin:auto 0 0;border-radius:26px 26px 0 0;max-height:92vh;animation:up .22s ease-out}  /* на телефоне выезжает снизу (перекрывает rise) */
   #dlgBox{max-height:92vh}
   .grab{display:block;width:44px;height:5px;border-radius:9px;background:var(--line);margin:10px auto 0}
   .dlg-head{padding:12px 18px 4px}
@@ -637,14 +654,20 @@ function cleanErr(e) {
   return DB.cleanError({ message: m.replace(/^Error:\s*/, ''), status: e && e.status });
 }
 
-let toastTimer;
+let toastTimer, toastOutTimer;
 function toast(msg, kind) {
   const t = $('#toast');
   t.textContent = msg;
   t.className = kind || '';
   t.hidden = false;
+  void t.offsetWidth; // перезапустить анимацию появления
+  t.classList.add('in');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, kind === 'bad' ? 7000 : 5000);
+  clearTimeout(toastOutTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('in'); t.classList.add('out');
+    toastOutTimer = setTimeout(() => { t.hidden = true; t.classList.remove('out'); }, 180);
+  }, kind === 'bad' ? 7000 : 5000);
 }
 
 function call(fn, ...args) {
@@ -1454,7 +1477,7 @@ function itemRow(it) {
       canLeft ? h('button', { class: 'btn leftbtn sm', onclick: () => leftoverFor(it) }, '♻️ Вчерашнее') : null
     ];
   }
-  return h('div', { class: 'item' + (it.done ? ' done' : '') + (it.left && !it.done ? ' left' : '') },
+  return h('div', { class: 'item' + (it.done ? ' done' : '') + (it.left && !it.done ? ' left' : ''), 'data-id': it.id },
     h('div', { class: 'item-main' },
       h('div', { class: 'item-emo', text: emo(d.name, true) }),
       h('div', { class: 'item-body' },
@@ -2256,6 +2279,7 @@ function newsCard() {
 }
 
 /* ───── Запуск ───── */
+let enterNext = false, prevDone = null;
 function render() {
   renderBanner();
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
@@ -2263,12 +2287,18 @@ function render() {
   $('#btnHelp').classList.toggle('on', tab === 'help');
   const v = $('#view');
   v.replaceChildren();
+  v.classList.toggle('enter', enterNext);
+  enterNext = false;
   ({ week: renderWeek, stock: renderStock, dishes: renderDishes, matrix: renderMatrix, prices: renderPrices, log: renderLog, help: renderHelp })[tab](v);
+  // «пружинка» у блюд, которые только что стали приготовленными (не при первой отрисовке и не при смене вкладки)
+  const nowDone = new Set((S.plan || []).filter(i => i.done).map(i => i.id));
+  if (prevDone) v.querySelectorAll('.item[data-id]').forEach(el => { if (nowDone.has(el.dataset.id) && !prevDone.has(el.dataset.id)) el.classList.add('just'); });
+  prevDone = nowDone;
 }
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.t;
-  if (S) { render(); window.scrollTo(0, 0); }
+  if (S) { enterNext = true; render(); window.scrollTo(0, 0); }
   touchMenu();
 }));
 
