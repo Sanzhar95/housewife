@@ -56,9 +56,10 @@ body.busy #busy{opacity:1;animation:slide 1.1s ease-in-out infinite}
 #view.enter>*:nth-child(3){animation-delay:60ms}
 #view.enter>*:nth-child(4){animation-delay:90ms}
 #view.enter>*:nth-child(5){animation-delay:120ms}
+#view.enter>.fab{animation:none}
 .item.just .chip.ok{animation:pop .24s ease-out}
-.tile,.dchip,.rowbtn,.icon-act,.icon-btn,.tab{transition:transform .12s,background .15s,color .15s}
-.tile:active,.dchip:active,.rowbtn:active,.icon-act:active,.icon-btn:active,.tab:active{transform:scale(.97)}
+.dchip,.rowbtn,.icon-act,.icon-btn,.tab{transition:transform .12s,background .15s,color .15s}
+.dchip:active,.rowbtn:active,.icon-act:active,.icon-btn:active,.tab:active{transform:scale(.97)}
 dialog[open]::backdrop{animation:fade .2s ease-out}
 #toast.in{animation:toastin .2s ease-out}
 #toast.out{animation:toastout .18s ease-in forwards}
@@ -74,7 +75,7 @@ header.top{background:var(--surface);border-bottom:1px solid var(--line);positio
 .hbtn{border:0;background:var(--surface-2);border-radius:99px;height:40px;padding:0 14px;display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer}
 .hbtn:hover,.hbtn.on{background:var(--accent-soft)}
 nav{display:flex;gap:6px;padding-bottom:12px}
-.tab{border:0;background:var(--surface-2);padding:9px 16px;border-radius:99px;color:var(--muted);cursor:pointer;font-weight:700;white-space:nowrap;display:flex;gap:8px;align-items:center;transition:background .15s,color .15s}
+.tab{border:0;background:var(--surface-2);padding:9px 16px;border-radius:99px;color:var(--muted);cursor:pointer;font-weight:700;white-space:nowrap;display:flex;gap:8px;align-items:center;transition:transform .12s,background .15s,color .15s}
 .tab:hover{color:var(--ink)}
 .tab.on{background:var(--accent);color:var(--accent-ink)}
 .tab .ico{font-size:17px;line-height:1}
@@ -931,7 +932,7 @@ function dishImportPreview(parsed, fname) {
     h('p', { class: 'muted small', text: `${fname}. ${summary}.` }),
     h('div', {}, ds.map(d => h('div', { class: 'imp-row' + (d.status === 'err' ? ' err' : '') },
       h('span', { text: ICON[d.status] || '•' }),
-      h('div', { class: 'nm' }, d.name || '—', h('small', { text: detail(d) }))))));
+      h('div', { class: 'nm' }, displayName(d.name) || '—', h('small', { text: detail(d) }))))));
   modal({
     title: '📥 Блюда из Excel',
     body,
@@ -984,7 +985,7 @@ function renderBanner() {
   b.hidden = false;
   // одна строка: берём столько названий, сколько помещается целиком; остальное — «и ещё N»
   const line = k => {
-    const names = low.slice(0, k).map(p => `${emo(p.name)} ${p.name}`).join(', ');
+    const names = low.slice(0, k).map(p => `${emo(p.name)} ${displayName(p.name)}`).join(', ');
     return k ? [h('b', { text: '🛒 Пора докупить: ' }), names + (low.length > k ? ` и ещё ${low.length - k}` : '')] : [h('b', { text: `🛒 Пора докупить: ${low.length}` })];
   };
   for (let k = Math.min(low.length, 4); k >= 0; k--) {
@@ -997,6 +998,7 @@ let bannerT = 0;
   clearTimeout(bannerT);
   bannerT = setTimeout(() => { if (S && !$('#banner').hidden) renderBanner(); }, 200);
 }));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && !$('#banner').hidden) renderBanner(); });
 
 $('#btnNotify').addEventListener('click', () => {
   if (!S) return;
@@ -1121,7 +1123,7 @@ const planOf = (day, meal) => (S.plan || []).filter(it => it.day === day && it.m
   .sort((a, b) => (a.kind === 'main' ? 0 : 1) - (b.kind === 'main' ? 0 : 1));
 const mainsFor = meal => S.dishes.filter(d => d.type === 'main' && d.meals.includes(meal));
 const LEFT_MEALS = ['Обед', 'Ужин'];
-const titleOf = (dish, side) => (D(dish) ? D(dish).name : '') + (side && D(side) ? ' + ' + D(side).name : '');
+const titleOf = (dish, side) => (D(dish) ? displayName(D(dish).name) : '') + (side && D(side) ? ' + ' + displayName(D(side).name) : '');
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 function dayLbl(day) {
   const ti = todayIdx();
@@ -1410,7 +1412,7 @@ function sideLine(it, d) {
   if (!showSel) return it.done || it.left ? null : h('button', { class: 'add-side', onclick: () => { it._open = true; render(); } }, '＋ Добавить гарнир');
   const sel = h('select', { 'aria-label': 'Гарнир', onchange: e => changeSide(it, e.target.value) },
     h('option', { value: '' }, 'без гарнира'),
-    sides.map(x => h('option', { value: x.id, selected: x.id === it.side }, emo(x.name, true) + ' ' + x.name)));
+    sides.map(x => h('option', { value: x.id, selected: x.id === it.side }, emo(x.name, true) + ' ' + displayName(x.name))));
   return h('div', { class: 'side' }, h('span', { class: 'side-lbl', text: 'Гарнир' }), sel,
     h('button', { class: 'icon-act', title: 'Случайный гарнир', 'aria-label': 'Случайный гарнир', onclick: async () => {
       if (it.done && !it.left && !(await confirmBox('Блюдо уже приготовлено: старый гарнир вернётся на склад, новый спишется.', 'Заменить', '🔄 Заменить гарнир?'))) return;
@@ -1481,7 +1483,7 @@ function itemRow(it) {
     h('div', { class: 'item-main' },
       h('div', { class: 'item-emo', text: emo(d.name, true) }),
       h('div', { class: 'item-body' },
-        h('div', { class: 'item-name' }, it.kind === 'extra' ? h('span', { class: 'kind', text: 'доп' }) : null, d.name),
+        h('div', { class: 'item-name' }, it.kind === 'extra' ? h('span', { class: 'kind', text: 'доп' }) : null, displayName(d.name)),
         state, extra.length ? h('div', { class: 'chips-row' }, extra) : null),
       it.done ? null : h('div', { class: 'item-tools' },
         h('button', { class: 'icon-act', title: 'Заменить случайным', 'aria-label': 'Заменить случайным', onclick: () => act('rerollItem', it.id, onlyAvail) }, '🎲'),
@@ -1575,7 +1577,7 @@ function renderWeek(v) {
       ? h('div', { class: 'list' },
           list.map(r => h('div', { class: 'lrow' },
             h('span', { class: 'em', text: emo(r.p.name) }),
-            h('div', { class: 'nm' }, r.p.name,
+            h('div', { class: 'nm' }, displayName(r.p.name),
               h('small', { text: (r.short ? `на меню ${qtyNice(r.need, r.p.unit)}, есть ${qtyNice(r.p.stock, r.p.unit)}` : `запас на исходе, есть ${qtyNice(r.p.stock, r.p.unit)}`) + (r.cost != null ? `, ≈ ${money(r.cost)}` : '') })),
             h('span', { class: 'to', text: r.buy > 0 ? '+ ' + qtyNice(r.buy, r.p.unit) : 'купить' }))),
           priced ? h('div', { class: 'total-row' }, h('span', { text: 'Примерно на сумму' }), h('span', { text: money(total) })) : null)
@@ -1639,7 +1641,7 @@ function restockForm(p) {
   unit.addEventListener('change', upd);
   calc.style.whiteSpace = 'pre-line';
   modal({
-    title: `${emo(p.name)} Приход: ${p.name}`,
+    title: `${emo(p.name)} Приход: ${displayName(p.name)}`,
     body: h('div', { class: 'form' },
       h('p', { class: 'muted', text: 'Сейчас на складе: ' + qtyNice(p.stock, p.unit) }),
       field('Сколько купили', withUnit(amount, unit)),
@@ -1806,7 +1808,7 @@ async function delDish(d) {
 async function cookFlow(dish) {
   const sides = S.dishes.filter(x => x.type === 'side').sort(byName);
   const sel = dish.type === 'main' && sides.length ? h('select', {}, h('option', { value: '' }, 'без гарнира'),
-    sides.map(x => h('option', { value: x.id }, emo(x.name, true) + ' ' + x.name))) : null;
+    sides.map(x => h('option', { value: x.id }, emo(x.name, true) + ' ' + displayName(x.name)))) : null;
   const ti = todayIdx();
   const withLeft = dish.type !== 'side' && ti >= 0;
   const opts = await askCook({
@@ -1998,7 +2000,7 @@ function priceDetail(p) {
   const all = (S.purchases || []).filter(x => x.product === p.id).sort((a, b) => b.when.localeCompare(a.when));
   const spent = all.reduce((s, x) => s + (x.total || 0), 0);
   modal({
-    title: `${emo(p.name)} ${p.name}`,
+    title: `${emo(p.name)} ${displayName(p.name)}`,
     wide: true,
     body: h('div', { class: 'form' },
       h('div', { class: 'stats' },
@@ -2069,7 +2071,7 @@ function renderPrices(v) {
       host.append(h('button', { class: 'price-card', onclick: () => priceDetail(x.p) },
         h('div', { class: 'em-badge', text: emo(x.p.name) }),
         h('div', { class: 'mid' },
-          h('div', { style: 'font-weight:700' , text: x.p.name }),
+          h('div', { style: 'font-weight:700' , text: displayName(x.p.name) }),
           h('div', { class: 'pv' }, money(vals[vals.length - 1]), h('small', { text: ' /' + perLbl(x.p.unit) }))),
         h('div', { class: 'spark' }, vals.length > 1 ? h('span', { html: sparkSvg(vals, 96, 34) }) : null, trendChip(x.t))));
     });
@@ -2083,7 +2085,7 @@ function renderPrices(v) {
     chips, host));
   draw();
   const noPrice = S.products.filter(p => !pricesOf(p.id).length);
-  if (noPrice.length) v.append(h('p', { class: 'muted small', style: 'margin-top:14px', text: 'Пока без цены: ' + noPrice.map(p => p.name).join(', ') }));
+  if (noPrice.length) v.append(h('p', { class: 'muted small', style: 'margin-top:14px', text: 'Пока без цены: ' + noPrice.map(p => displayName(p.name)).join(', ') }));
 }
 
 /* ───── Журнал ───── */
