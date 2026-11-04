@@ -64,8 +64,9 @@ nav{display:flex;gap:6px;padding-bottom:12px}
 .tab .ico{font-size:17px;line-height:1}
 
 #banner{background:var(--warn-soft);color:var(--warn);border-bottom:1px solid #f3dd9c}
-#banner .wrap{display:flex;gap:10px;align-items:center;padding-top:10px;padding-bottom:10px}
-#banner .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#banner .wrap{display:flex;gap:10px;align-items:center;padding-top:4px;padding-bottom:4px;cursor:pointer}
+#banner .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+#banner .btn.sm{min-height:34px;padding:4px 14px;flex:none}
 
 main{padding:22px 0 60px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -118,10 +119,10 @@ input[type=search]:focus{border-color:var(--accent);outline:none}
 
 /* Сводка */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
-.stat{background:var(--surface);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
+.stat{background:var(--surface);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
 .stat .si{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
 .stat b{font-size:22px;font-weight:800;line-height:1.1;display:block}
-.stat span.l{font-size:13px;color:var(--muted);font-weight:600}
+.stat span.l{font-size:13px;color:var(--muted);font-weight:600;line-height:1.25;display:block}
 .si.a{background:var(--mint-soft)}.si.b{background:var(--warn-soft)}.si.c{background:var(--pink-soft)}
 
 /* Герой «Сегодня» */
@@ -372,10 +373,12 @@ dialog::backdrop{background:rgba(42,35,56,.45)}
 .chip.times{background:var(--mint-soft);color:#17684a}
 .chip.por{background:var(--accent-soft);color:var(--accent-deep)}
 .chips-row{display:flex;gap:6px;flex-wrap:wrap}
-.news{display:flex;gap:12px;align-items:center;background:var(--mint-soft);border-radius:20px;padding:12px 14px;margin-bottom:16px}
-.news .em{font-size:28px;flex:none}
-.news .tx{flex:1;min-width:0;font-weight:700;font-size:15px;line-height:1.35}
-.news .tx small{display:block;color:var(--muted);font-weight:600}
+.news{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:center;background:var(--mint-soft);border-radius:20px;padding:8px 6px 10px 14px;margin-bottom:14px}
+.news .em{font-size:26px;grid-area:1/1}
+.news .tx{grid-area:1/2;font-weight:700;font-size:15px;line-height:1.3}
+.news .tx small{display:block;color:var(--muted);font-weight:600;font-size:14px;line-height:1.3}
+.news .btn{grid-area:2/2;justify-self:start;min-height:38px}
+.news .icon-act{grid-area:1/3;align-self:start}
 
 /* Помощь */
 .help-hero{background:var(--accent-soft);border-radius:24px;padding:18px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
@@ -417,12 +420,13 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .hbtn .lbl{display:none}
   main{padding:16px 0 calc(var(--nav-h) + 90px + env(safe-area-inset-bottom,0px))}
   h2{font-size:23px}
-  .toolbar{gap:10px;margin-bottom:12px}
+  .toolbar{gap:4px 10px;margin-bottom:10px}
   .toolbar .grow{min-width:0;flex-basis:100%}
+  .toolbar .check{min-height:36px}
   input[type=search]{min-width:0;width:100%;flex:1}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .stat{flex-direction:column;align-items:flex-start;gap:6px;padding:12px}
-  .stat .si{width:36px;height:36px;font-size:18px;border-radius:12px}
+  .stat{flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px}
+  .stat .si{width:26px;height:26px;font-size:15px;border-radius:9px}
   .stat b{font-size:18px}
   .stat span.l{font-size:12px;line-height:1.25}
   .hero{flex-direction:column;align-items:stretch;padding:18px;border-radius:24px;gap:14px}
@@ -461,7 +465,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .tab.on{background:var(--accent-soft);color:var(--accent-deep)}
   .tab .ico{font-size:22px}
 
-  .gen-btn{width:100%;min-height:52px;font-size:17px}
+  .gen-btn{width:100%;min-height:50px;font-size:17px}
   .fab{display:flex;position:fixed;right:16px;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:35;height:58px;padding:0 22px;border-radius:99px;border:0;background:var(--accent);color:#fff;font-weight:800;font-size:16px;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(106,85,216,.45);cursor:pointer}
   .fab b{font-size:26px;line-height:1;font-weight:700}
   #toast{bottom:calc(var(--nav-h) + 86px + env(safe-area-inset-bottom,0px))}
@@ -940,11 +944,20 @@ function renderBanner() {
   const b = $('#banner');
   const low = S.products.filter(isLow);
   if (!low.length) { b.hidden = true; return; }
-  const shown = low.slice(0, 4).map(p => `${emo(p.name)} ${p.name}`).join(', ');
-  b.replaceChildren(h('div', { class: 'wrap' },
-    h('span', { class: 'txt' }, h('b', { text: '🛒 Пора докупить: ' }), shown + (low.length > 4 ? ` и ещё ${low.length - 4}` : '')),
-    h('button', { class: 'btn sm', onclick: () => { tab = 'stock'; stockFilter = 'low'; render(); } }, 'Смотреть')));
+  const go = () => { tab = 'stock'; stockFilter = 'low'; render(); window.scrollTo(0, 0); };
+  const txt = h('span', { class: 'txt' });
+  b.replaceChildren(h('div', { class: 'wrap', onclick: go },
+    txt, h('button', { class: 'btn sm', onclick: e => { e.stopPropagation(); go(); } }, 'Смотреть')));
   b.hidden = false;
+  // одна строка: берём столько названий, сколько помещается целиком; остальное — «и ещё N»
+  const line = k => {
+    const names = low.slice(0, k).map(p => `${emo(p.name)} ${p.name}`).join(', ');
+    return k ? [h('b', { text: '🛒 Пора докупить: ' }), names + (low.length > k ? ` и ещё ${low.length - k}` : '')] : [h('b', { text: `🛒 Пора докупить: ${low.length}` })];
+  };
+  for (let k = Math.min(low.length, 4); k >= 0; k--) {
+    txt.replaceChildren(...line(k));
+    if (txt.scrollWidth <= txt.clientWidth + 1) break;
+  }
 }
 
 $('#btnNotify').addEventListener('click', () => {

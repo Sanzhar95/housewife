@@ -218,3 +218,55 @@ test('блюда: загрузка из Excel — бланк, проверка, 
   } finally { await browser.close(); server.close(); }
   assert.deepStrictEqual(errors, []);
 });
+
+// Геометрия экрана «Меню» на 390×844 (iPhone): «Сегодня» на первом экране, компактные баннер, плашка «Новое», счётчики.
+test('меню: геометрия шапки, плашки «Новое», счётчиков и блока «Сегодня» (390×844)', { skip: !playwright }, async () => {
+  const server = await serve();
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await playwright.chromium.launch();
+  const NAV = 72;
+  const login = async (page) => {
+    await page.goto(base + '/');
+    await page.fill('input[type=email]', 'mama@example.com');
+    await page.fill('input[type=password]', 'password1');
+    await page.click('.auth .btn.primary');
+    await page.waitForSelector('nav .tab');
+    await page.waitForSelector('.day-title');
+  };
+  const box = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, w: r.width }; }, sel);
+  try {
+    // 1) плашка «Новое» показана (чистое хранилище)
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const page = await ctx.newPage();
+    await login(page);
+    const news = await box(page, '.news');
+    assert.ok(news, 'плашка «Новое» показана при чистом хранилище');
+    const tx = await box(page, '.news .tx');
+    assert.ok(tx.w >= news.w * 0.6, `текст плашки ${Math.round(tx.w)}px из ${Math.round(news.w)}px — меньше 60%`);
+    assert.ok(await page.isVisible('#banner'), 'в тестовых данных есть продукты на исходе — строка видна');
+    const banner = await box(page, '#banner');
+    assert.ok(banner && banner.h <= 44, `строка «Пора докупить» ${banner && banner.h}px, нужно ≤ 44`);
+    for (const t of ['stock', 'dishes']) {
+      await page.click(`nav .tab[data-t=${t}]`);
+      const b = await box(page, '#banner');
+      assert.ok(b.h <= 44, `«Пора докупить» на вкладке ${t}: ${b.h}px`);
+    }
+    await page.click('nav .tab[data-t=week]');
+    const stats = await page.evaluate(() => [...document.querySelectorAll('.stats .stat')].map(e => e.getBoundingClientRect().height));
+    assert.strictEqual(stats.length, 3);
+    stats.forEach(h => assert.ok(h <= 110, `карточка-счётчик ${h}px, нужно ≤ 110`));
+    const dtNews = await box(page, '.day-title');
+    assert.ok(dtNews.bottom <= 740, `«Сегодня» с плашкой «Новое» заканчивается на ${dtNews.bottom}px, нужно ≤ 740`);
+    await ctx.close();
+
+    // 2) без плашки «Новое»: заголовок «Сегодня» целиком на первом экране
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const p2 = await ctx2.newPage();
+    await p2.addInitScript(() => { try { localStorage.setItem('dk_news_portions_v1', '1'); } catch (e) { /* нет хранилища */ } });
+    await login(p2);
+    assert.strictEqual(await p2.locator('.news').count(), 0);
+    const dt = await box(p2, '.day-title');
+    assert.ok(dt.bottom < 844 - NAV, `«Сегодня» заканчивается на ${dt.bottom}px, нужно < ${844 - NAV}`);
+    await ctx2.close();
+  } finally { await browser.close(); server.close(); }
+});
