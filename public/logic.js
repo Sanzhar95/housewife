@@ -862,6 +862,81 @@ function importProducts(rows) {
   });
 }
 
+/* ───── Загрузка блюд из Excel (в Code.gs аналога нет) ───── */
+
+/** Название для сравнения: без регистра, ё=е, пробелы схлопнуты (в т.ч. неразрывные), по краям обрезаны. */
+function nameKey_(v) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toLowerCase().replace(/ё/g, 'е'); }
+
+/**
+ * rows: [{name, type?, meals?, withSide?, portions?, times?, note?, ing?: [{product, qty, unit?}]}].
+ * Существующие блюда, продукты, план и склад не меняются: только добавляются новые блюда (и новые продукты с остатком 0).
+ * Блюдо с ошибкой не загружается целиком вместе с продуктами, созданными только для него.
+ */
+function importDishes(rows) {
+  return tx_(() => {
+    const list = (rows || []).filter(r => r && nameKey_(r.name));
+    if (!list.length) { const st = state_(); st.notice = 'Нечего загружать.'; return st; }
+    const m = load_();
+    const dishKeys = {};
+    m.dishes.forEach(d => { dishKeys[nameKey_(d.name)] = true; });
+    let created = 0, newProducts = 0;
+    const skipped = [];
+    list.forEach(r => {
+      const name = String(r.name).replace(/\s+/g, ' ').trim();
+      if (dishKeys[nameKey_(name)]) { skipped.push(name + ' (уже есть)'); return; }
+      try {
+        const fresh = [];   // продукты, созданные для этого блюда (сохраняем только при успехе)
+        const items = [];
+        (r.ing || []).forEach(i => {
+          const pn = String(i && i.product != null ? i.product : '').replace(/\s+/g, ' ').trim();
+          if (!pn) return;
+          const key = nameKey_(pn);
+          let p = m.products.find(x => nameKey_(x.name) === key) || fresh.find(x => nameKey_(x.name) === key);
+          if (!p) {
+            if (!i.unit) throw new Error('у нового продукта «' + pn + '» не указана единица');
+            p = { id: null, name: pn, unit: unit_(i.unit), stock: 0, min: 0 };
+            fresh.push(p);
+          }
+          const lu = i.unit ? unit_(i.unit) : p.unit;
+          if (!sameFam_(lu, p.unit)) throw new Error('«' + p.name + '» считается в ' + p.unit + ', а в файле указано ' + lu);
+          const q = num_(i.qty);
+          if (!(q > 0)) throw new Error('у «' + p.name + '» не указано количество');
+          const qty = conv_(q, lu, p.unit);
+          const ex = items.find(x => x.p === p);
+          if (ex) ex.qty = r6_(ex.qty + qty); else items.push({ p, qty, unit: lu });
+        });
+        const rawType = String(r.type == null ? '' : r.type).trim();
+        const type = TYPES[rawType] ? rawType : typeKey_(rawType);
+        const pr = Number(String(r.portions == null ? '' : r.portions).replace(',', '.'));
+        if (pr > MAX_PORTIONS) throw new Error('порций в рецепте — не больше ' + MAX_PORTIONS);
+        const dish = {
+          id: null, name, note: String(r.note == null ? '' : r.note).trim(), type,
+          meals: mealsOf_(Array.isArray(r.meals) ? r.meals.join(', ') : r.meals),
+          withSide: type === 'main' && !!r.withSide,
+          portions: pr > 0 ? r3_(pr) : 0,
+          times: type === 'main' ? timesOf_(r.times) : 1
+        };
+        // успех: фиксируем
+        fresh.forEach(p => { p.id = id_(); m.products.push(p); });
+        dish.id = id_();
+        m.dishes.push(dish);
+        items.forEach(x => m.ing.push({ dish: dish.id, product: x.p.id, qty: x.qty, unit: x.unit }));
+        dishKeys[nameKey_(name)] = true;
+        created++; newProducts += fresh.length;
+      } catch (e) {
+        skipped.push(name + ' (' + String(e.message || e).replace(/\.$/, '') + ')');
+      }
+    });
+    saveProducts_(m.products);
+    saveDishes_(m.dishes);
+    saveIng_(m.ing);
+    log_('Загрузка блюд из Excel', '', 'блюд: ' + created + ', новых продуктов: ' + newProducts + (skipped.length ? ', пропущено: ' + skipped.length : ''));
+    const st = state_();
+    st.notice = 'Загружено блюд: ' + created + ', новых продуктов: ' + newProducts + (skipped.length ? '\nПропущено: ' + skipped.join(', ') : '');
+    return st;
+  });
+}
+
   /* ───────────── Слой хранения вместо листов ───────────── */
 
   const id_ = () => env.id();
@@ -988,7 +1063,7 @@ function importProducts(rows) {
     getState, saveProduct, adjustStock, deleteProduct, saveDish, deleteDish, setIngredient,
     generateWeek, addItem: replaced_(addItem, 'added'), rerollItem: replaced_(rerollItem, 'rerolled'),
     setItem: replaced_(setItem, 'chosen'), removeItem: replaced_(removeItem, 'removed'), setSide, rerollSide,
-    cookItem, cookMeal, setLeftover, addLeftover, undoItem, cookDish, importProducts, saveSettings, touchMenu
+    cookItem, cookMeal, setLeftover, addLeftover, undoItem, cookDish, importProducts, importDishes, saveSettings, touchMenu
   };
 
   function apply(name, state, args) {
