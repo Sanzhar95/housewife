@@ -131,3 +131,16 @@ test('Auth.inviteLink, changePassword, getSession', async () => {
   const member = fakeClient({ rpc: () => ({ data: null, error: { message: 'Только владелец семьи может приглашать' } }) });
   await assert.rejects(Auth.create({ client: member }).inviteLink(), /Только владелец/);
 });
+
+test('Auth.isAdmin и familyInviteLink: ссылка на новую семью, ошибки', async () => {
+  const c = fakeClient({ rpc: (n) => ({ data: n === 'is_admin' ? true : 'tok_newfamily12345', error: null }) });
+  const auth = Auth.create({ client: c, origin: 'https://moya-kuhnya.netlify.app' });
+  assert.strictEqual(await auth.isAdmin(), true);
+  assert.strictEqual(await auth.familyInviteLink('  Семья Ивановых '), 'https://moya-kuhnya.netlify.app/#/join/tok_newfamily12345');
+  assert.deepStrictEqual(c.calls[1], ['admin_create_family_invite', { family_name: 'Семья Ивановых' }]);
+  const no = fakeClient({ rpc: (n) => n === 'is_admin' ? { data: false, error: null } : { data: null, error: { message: 'Недостаточно прав' } } });
+  assert.strictEqual(await Auth.create({ client: no }).isAdmin(), false);
+  await assert.rejects(Auth.create({ client: no }).familyInviteLink('x'), /Недостаточно прав/);
+  const broken = fakeClient({ rpc: () => { throw new Error('Failed to fetch'); } });
+  assert.strictEqual(await Auth.create({ client: broken }).isAdmin(), false);   // сеть упала — кнопку не показываем
+});

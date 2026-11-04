@@ -83,6 +83,22 @@ test('вход, меню, готовка, перезагрузка (390px)', { s
     await page.waitForSelector('.link-box');
     assert.match(await page.inputValue('.link-box input'), /\/#\/join\/newtoken456789$/);
     await page.keyboard.press('Escape');
+    // обычному пользователю «Новая семья для друга» не показывается
+    assert.strictEqual(await page.locator('text=Новая семья для друга').count(), 0);
+    // администратору показывается, создаёт ссылку на новую семью
+    await page.evaluate(() => localStorage.setItem('stub-admin', '1'));
+    await page.reload();
+    await page.waitForSelector('nav .tab');
+    await page.waitForFunction(() => isAdmin === true);
+    await page.click('#btnNotify');
+    await page.click('text=Новая семья для друга');
+    await page.fill('#dlgBox input[type=text]', 'Семья Ивановых');
+    await shot('06-friend-form');
+    await page.click('text=Создать ссылку');
+    await page.waitForSelector('.link-box');
+    assert.match(await page.inputValue('.link-box input'), /\/#\/join\/family14token$/);
+    await shot('07-friend-link');
+    await page.keyboard.press('Escape');
   } finally {
     await browser.close(); server.close();
   }

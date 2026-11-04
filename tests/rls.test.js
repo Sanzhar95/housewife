@@ -174,3 +174,32 @@ test('миграция синтетической выгрузки: get_state с
   assert.deepEqual(s.plan.map(p => p.id).sort(), m.state.plan.map(p => p.id).sort());
   assert.deepEqual(s.settings.weekStart, m.state.settings.weekStart);
 });
+
+test('новая семья для друга: только админ; обычный владелец и участник — отказ; ссылка работает один раз', { skip }, () => {
+  // не админ
+  for (const who of [A.owner]) {
+    assert.equal(T.must('select public.is_admin()', { as: who }), 'f');
+    const r = T.sql("select public.admin_create_family_invite('Друг')", { as: who });
+    assert.equal(r.ok, false); assert.match(r.err, /Недостаточно прав/);
+  }
+  // anon
+  const an = T.sql("select public.admin_create_family_invite('x')", { role: 'anon' });
+  assert.equal(an.ok, false); assert.match(an.err, /permission denied/);
+  // таблица app_admins из браузера недоступна, самому себя админом не назначить
+  const ins = T.sql(`insert into public.app_admins (user_id) values ('${A.owner.id}')`, { as: A.owner });
+  assert.equal(ins.ok, false);
+  // админ
+  T.must(`insert into public.app_admins (user_id) values ('${A.owner.id}')`);
+  assert.equal(T.must('select public.is_admin()', { as: A.owner }), 't');
+  const tok = T.must("select public.admin_create_family_invite('  TEST-Друг  ')", { as: A.owner });
+  assert.match(tok, /^[0-9a-f]{64}$/);
+  const friend = T.signUp(tok);
+  assert.equal(friend.ok, true, friend.err);
+  const hh = T.must(`select h.name || '|' || m.role || '|' || (h.id <> '${A.hid}') from public.members m join public.households h on h.id = m.household_id where m.user_id = '${friend.id}'`);
+  assert.equal(hh, 'TEST-Друг|owner|true');
+  assert.equal(T.must('select public.is_admin()', { as: friend }), 'f');
+  // друг не видит вашу семью
+  assert.equal(T.must(`select count(*) from public.products where household_id = '${A.hid}'`, { as: friend }), '0');
+  // ссылка одноразовая
+  assert.equal(T.signUp(tok).ok, false);
+});

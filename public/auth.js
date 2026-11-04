@@ -81,6 +81,16 @@ function create(deps) {
       if (r.error) fail(r.error, 'invite');
       return origin + '/#/join/' + r.data;
     },
+    /** Администратор проекта (только он видит «Новая семья для друга»). Ошибка сети — считаем «нет». */
+    async isAdmin() {
+      try { const r = await client.rpc('is_admin', {}); return !r.error && r.data === true; } catch (e) { return false; }
+    },
+    /** Ссылка на новую отдельную семью (только администратор); токен показывается один раз. */
+    async familyInviteLink(familyName) {
+      const r = await client.rpc('admin_create_family_invite', { family_name: String(familyName || '').trim() });
+      if (r.error) fail(r.error, 'invite');
+      return origin + '/#/join/' + r.data;
+    },
     parseJoinHash,
     mapError
   };

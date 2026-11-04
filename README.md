@@ -110,3 +110,9 @@ Workers & Pages → Create → Pages → Connect to Git → выберите р�
 2. Первая семья: в SQL Editor выполнить `select public.admin_new_family_invite('Наша семья');` — вернёт токен. Ссылка: `<адрес сайта>/#/join/<токен>` (действует 7 дней, одноразовая).
 3. Проверка защиты: `SUPABASE_DB_URL=… node --test tests/rls.test.js` (нужен установленный `psql`). Тесты создают только семьи `TEST-…` и пользователей `@dk-test.invalid` и удаляют их за собой.
 4. Локально без Supabase: любой PostgreSQL 15+, сначала `tests/helpers/supabase-stub.sql` (имитация ролей и `auth`), затем миграция.
+
+## Кнопка «Новая семья для друга» (миграция 002)
+1. SQL Editor → выполнить `supabase/migrations/002_admin_family_invite.sql` (можно повторно).
+2. Назначить себя администратором (один раз): `insert into public.app_admins (user_id) select id from auth.users where email = 'ВАША_ПОЧТА' on conflict do nothing;`
+3. В приложении: «Настройки» → «🎁 Новая семья для друга» → имя семьи → ссылка (7 дней, одноразовая). Остальные пользователи кнопку не видят, а вызвать функцию напрямую база им не даёт.
+4. Проверка локально без Supabase: `sh tools/local-pg.sh` (печатает `SUPABASE_DB_URL`), затем `npm test`.

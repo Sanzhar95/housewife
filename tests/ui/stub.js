@@ -15,7 +15,7 @@ function stubSource(seedState) {
   let srv = makeServer(SEED);
   try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { srv.t = saved.t; srv.settings = saved.settings; srv.log = saved.log; srv.purchases = saved.purchases; srv.version = saved.version; } } catch (e) {}
   const save = () => localStorage.setItem(KEY, JSON.stringify({ t: srv.t, settings: srv.settings, log: srv.log, purchases: srv.purchases, version: srv.version }));
-  window.__stub = { srv, reset() { localStorage.removeItem(KEY); localStorage.removeItem(SES); }, delay: 0 };
+  window.__stub = { srv, reset() { localStorage.removeItem(KEY); localStorage.removeItem(SES); localStorage.removeItem('stub-admin'); }, delay: 0 };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   window.supabase = { createClient() {
     return {
@@ -35,6 +35,8 @@ function stubSource(seedState) {
       },
       async rpc(name, args) {
         if (name === 'create_invite') return { data: 'newtoken456789', error: null };
+        if (name === 'is_admin') return { data: localStorage.getItem('stub-admin') === '1', error: null };
+        if (name === 'admin_create_family_invite') return { data: 'family' + String(args.family_name).length + 'token', error: null };
         const r = await srv.rpc(name, args); save(); await sleep(window.__stub.delay); return r;
       }
     };

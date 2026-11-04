@@ -516,6 +516,7 @@ const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'и�
 const MONTHS_NOM = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 let S = null;
+let isAdmin = false;       // видит «Новая семья для друга» (проверяется базой, не интерфейсом)
 let tab = 'week';
 let onlyAvail = true;
 const q = { stock: '', dishes: '', prices: '', help: '' };
@@ -898,6 +899,7 @@ $('#btnNotify').addEventListener('click', () => {
       h('p', { class: 'muted small', text: 'Например, в семье 6 человек: впишите 6 — и список покупок, списание со склада и «можно ли приготовить» будут считаться на 6 порций.' }),
       h('div', { class: 'set-links' },
         owner ? h('button', { class: 'btn wide', onclick: inviteBox }, '👨‍👩‍👧 Пригласить в семью') : null,
+        isAdmin ? h('button', { class: 'btn wide', onclick: friendBox }, '🎁 Новая семья для друга') : null,
         h('button', { class: 'btn wide', onclick: passwordBox }, '🔑 Сменить пароль'),
         h('button', { class: 'btn wide', onclick: downloadBackup }, '💾 Скачать копию'),
         h('button', { class: 'btn wide danger', onclick: logout }, '🚪 Выйти'))),
@@ -909,21 +911,47 @@ $('#btnNotify').addEventListener('click', () => {
   });
 });
 
+/** Окно со ссылкой-приглашением: скопировать и (если телефон умеет) поделиться. */
+function linkBox(title, link, note, shareText) {
+  const box = h('input', { type: 'text', value: link, readonly: true, 'aria-label': 'Ссылка-приглашение' });
+  const copied = h('p', { class: 'muted small', text: note });
+  const canShare = typeof navigator.share === 'function';
+  modal({
+    title,
+    body: h('div', { class: 'link-box' }, box, copied,
+      h('button', { class: 'btn primary wide', onclick: async () => {
+        try { await navigator.clipboard.writeText(link); } catch (e) { box.select(); document.execCommand && document.execCommand('copy'); }
+        copied.textContent = '✅ Скопировано. Отправьте её человеку, которого приглашаете.';
+      } }, '📋 Скопировать'),
+      canShare ? h('button', { class: 'btn wide', onclick: () => { navigator.share({ text: shareText, url: link }).catch(() => {}); } }, '📤 Отправить…') : null),
+    cancelText: 'Закрыть', noOk: true
+  });
+}
+
 async function inviteBox() {
   try {
     const link = await Auth.inviteLink();
-    const box = h('input', { type: 'text', value: link, readonly: true, 'aria-label': 'Ссылка-приглашение' });
-    const copied = h('p', { class: 'muted small', text: 'Ссылка подойдёт одному человеку и работает 7 дней. Отправьте её в мессенджере.' });
-    modal({
-      title: '👨‍👩‍👧 Пригласить в семью',
-      body: h('div', { class: 'link-box' }, box, copied,
-        h('button', { class: 'btn primary wide', onclick: async () => {
-          try { await navigator.clipboard.writeText(link); } catch (e) { box.select(); document.execCommand && document.execCommand('copy'); }
-          copied.textContent = '✅ Скопировано. Отправьте её человеку, которого приглашаете.';
-        } }, '📋 Скопировать')),
-      cancelText: 'Закрыть', noOk: true
-    });
+    linkBox('👨‍👩‍👧 Пригласить в семью', link, 'Ссылка подойдёт одному человеку и работает 7 дней. Отправьте её в мессенджере.', 'Присоединяйтесь к нашей семье в «Домашней кухне»');
   } catch (e) { toast(cleanErr(e), 'bad'); }
+}
+
+/** Только для администратора: отдельная новая семья для друга (он не увидит ваши данные, а вы — его). */
+function friendBox() {
+  const name = h('input', { type: 'text', maxlength: '80', placeholder: 'Например: Семья Ивановых', autocomplete: 'off' });
+  modal({
+    title: '🎁 Новая семья для друга',
+    body: h('div', { class: 'form' },
+      field('Как назвать семью', name),
+      h('p', { class: 'muted small', text: 'Друг получит своё пустое приложение. Ваши продукты и меню он не увидит. Ссылка одноразовая и работает 7 дней.' })),
+    okText: 'Создать ссылку',
+    onOk: async () => {
+      try {
+        const link = await Auth.familyInviteLink(name.value || 'Семья друга');
+        linkBox('🎁 Ссылка для друга', link, 'Работает 7 дней, подойдёт одному человеку: он создаст свой аккаунт и свою семью.', 'Попробуйте «Домашнюю кухню» — приложение для меню и продуктов');
+      } catch (e) { toast(cleanErr(e), 'bad'); }
+      return false;
+    }
+  });
 }
 
 function passwordBox() {
@@ -2216,6 +2244,7 @@ let started = false;
 async function startApp() {
   document.body.classList.remove('anon');
   S = await API.getState();
+  Auth.isAdmin().then(v => { isAdmin = v; });
   if (!started) {
     started = true;
     DB.onSaving(n => { $('#sync').hidden = n === 0; });
