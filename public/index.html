@@ -272,7 +272,7 @@ section.block{margin-top:30px}
 .bar i{display:block;height:100%;border-radius:99px;background:var(--ok);transition:width .4s}
 .bar.low i{background:#e6a117}.bar.zero i{background:var(--bad)}
 .tile-foot{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);font-weight:600;flex-wrap:wrap}
-.tile-actions{display:flex;gap:4px;align-items:center;margin-top:2px}
+.tile-actions{display:flex;gap:4px;align-items:center;margin-top:auto;padding-top:2px}
 .tile-actions .btn{flex:1}
 .tile.lowt{box-shadow:inset 0 0 0 2px #f3d27a,var(--shadow)}
 .tile.zerot{box-shadow:inset 0 0 0 2px #f2a3b0,var(--shadow)}
@@ -430,6 +430,8 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .stat .si{width:26px;height:26px;font-size:15px;border-radius:9px}
   .stat b{font-size:18px}
   .stat span.l{font-size:12px;line-height:1.25}
+  .stat span.l{overflow-wrap:anywhere;hyphens:auto}
+  .stat{min-width:0}
   .hero{flex-direction:column;align-items:stretch;padding:18px;border-radius:24px;gap:14px}
   .hero-emoji{width:76px;height:76px;font-size:42px;border-radius:24px}
   .hero h2{font-size:25px}
@@ -478,6 +480,10 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .dlg-actions{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));flex-wrap:wrap}
   .dlg-actions .btn.primary{flex:1;min-height:50px;white-space:nowrap}
   .dlg-actions .btn.ghost{min-height:50px}
+}
+@media (max-width:359px){
+  .stat span.l{font-size:11px}
+  .actions-row{flex-wrap:wrap;overflow-x:visible}
 }
 </style>
 </head>
@@ -533,10 +539,13 @@ const PROD_EMO = [['творог', '🥣'], ['овсян', '🥣'], ['сливо
   ['помидор', '🍅'], ['томат', '🍅'], ['огур', '🥒'], ['перец', '🫑'], ['яблок', '🍎'], ['банан', '🍌'], ['лимон', '🍋'],
   ['говяд', '🥩'], ['фарш', '🥩'], ['свинин', '🥓'], ['кур', '🍗'], ['рыб', '🐟'], ['рис', '🍚'], ['гречк', '🌾'], ['макарон', '🍝'],
   ['мук', '🌾'], ['сахар', '🍬'], ['молок', '🥛'], ['сметан', '🥣'], ['кефир', '🥛'], ['масл', '🫒'], ['яйц', '🥚'], ['сыр', '🧀'],
-  ['хлеб', '🍞'], ['соль', '🧂'], ['чай', '🍵'], ['кофе', '☕']];
+  ['хлеб', '🍞'], ['соль', '🧂'], ['чай', '🍵'], ['кофе', '☕'],
+  ['картошк', '🥔'], ['мяс', '🥩'], ['сливк', '🥛'], ['майонез', '🥫'], ['тыкв', '🎃'], ['гриб', '🍄'], ['шампин', '🍄'], ['баклажан', '🍆'],
+  ['горош', '🟢'], ['редьк', '🥬'], ['сельдер', '🥬'], ['тесто', '🥟'], ['спагетт', '🍝'], ['лапш', '🍜'], ['каш', '🥣'], ['фасол', '🫘'], ['чечевиц', '🫘'], ['яйц', '🥚']];
 const DISH_EMO = [['пюре', '🥔'], ['рис', '🍚'], ['винегрет', '🥗'], ['омлет', '🍳'], ['борщ', '🍲'], ['плов', '🍛'], ['суп', '🍲'], ['блин', '🥞'], ['салат', '🥗'], ['котлет', '🍖'], ['макарон', '🍝'],
   ['яичниц', '🍳'], ['омлет', '🍳'], ['картош', '🥔'], ['пельмен', '🥟'], ['манты', '🥟'], ['пицц', '🍕'], ['пирог', '🥧'],
-  ['рыб', '🐟'], ['гречк', '🍛'], ['курин', '🍗'], ['куриц', '🍗'], ['каша', '🥣'], ['сырник', '🧇']];
+  ['рыб', '🐟'], ['гречк', '🍛'], ['курин', '🍗'], ['куриц', '🍗'], ['ножк', '🍗'], ['каша', '🥣'], ['сырник', '🧇'],
+  ['мяс', '🥩'], ['бефстроган', '🥩'], ['бризол', '🥩'], ['болонь', '🍝'], ['спагетт', '🍝'], ['бешбармак', '🍲'], ['ачучук', '🥗'], ['лагман', '🍜'], ['гуляш', '🍲'], ['шашлык', '🍢'], ['бургер', '🍔']];
 function emo(name, dish) {
   const n = String(name).toLowerCase().replace(/ё/g, 'е');
   const hit = (dish ? DISH_EMO : PROD_EMO).find(([k]) => n.includes(k));
