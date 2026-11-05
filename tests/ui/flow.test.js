@@ -350,6 +350,9 @@ test('анимации: reduce выключает всё; шторка выез�
     await page.click('.auth .btn.primary');
     await page.waitForSelector('nav .tab');
     await page.waitForSelector('.day-title');
+    // данные-образец заполнены на начало недели: открываем понедельник, чтобы тест не зависел от дня недели
+    await page.evaluate(() => { selDay = 2; render(); });
+    await page.waitForSelector('.item');
   };
   const sec = v => parseFloat(v) || 0;
   const anim = (page, sel, pseudo) => page.evaluate(([s, p]) => {
