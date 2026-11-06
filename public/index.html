@@ -6,21 +6,21 @@
 <meta name="theme-color" content="#6A55D8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Кухня">
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Домашняя кухня</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/config.js"></script>
-<script src="/vendor/supabase.js"></script>
-<script src="/logic.js"></script>
-<script src="/db.js"></script>
-<script src="/auth.js"></script>
-<script src="/api.js"></script>
-<script src="/xlsx-export.js"></script>
-<script src="/import-dishes.js"></script>
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="logic.js"></script>
+<script src="db.js"></script>
+<script src="auth.js"></script>
+<script src="api.js"></script>
+<script src="xlsx-export.js"></script>
+<script src="import-dishes.js"></script>
 <style>
 :root{
   color-scheme:light;
@@ -2279,7 +2279,7 @@ async function startApp() {
     $('#view').replaceChildren(h('div', { class: 'empty' }, h('span', { class: 'big', text: '😕' }), 'Приложение не настроено: нет адреса базы. Напишите Санжару.'));
     return;
   }
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   try {
     const client = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
     Auth.init(client);

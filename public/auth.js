@@ -38,7 +38,7 @@ const normEmail = e => String(e || '').trim().toLowerCase();
 
 function create(deps) {
   const client = deps.client;
-  const origin = deps.origin || (typeof location !== 'undefined' ? location.origin : '');
+  const origin = deps.origin || (typeof location !== 'undefined' ? location.origin + location.pathname.replace(/[^/]*$/, '').replace(/\/$/, '') : '');
 
   function checkPassword(p) {
     if (String(p || '').length < MIN_PASSWORD) throw new Error('Пароль — не короче ' + MIN_PASSWORD + ' символов');

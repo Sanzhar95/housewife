@@ -118,3 +118,12 @@ Workers & Pages → Create → Pages → Connect to Git → выберите р�
 2. Назначить себя администратором (один раз): `insert into public.app_admins (user_id) select id from auth.users where email = 'ВАША_ПОЧТА' on conflict do nothing;`
 3. В приложении: «Настройки» → «🎁 Новая семья для друга» → имя семьи → ссылка (7 дней, одноразовая). Остальные пользователи кнопку не видят, а вызвать функцию напрямую база им не даёт.
 4. Проверка локально без Supabase: `sh tools/local-pg.sh` (печатает `SUPABASE_DB_URL`), затем `npm test`.
+
+
+## Публикация на GitHub Pages
+1. Репозиторий → Settings → Pages → Source: **GitHub Actions**.
+2. Settings → Secrets and variables → Actions → вкладка **Variables** → добавить `SUPABASE_URL` и `SUPABASE_ANON_KEY` (публичный ключ, как в Netlify).
+3. Settings → Environments → `github-pages` → Deployment branches: разрешить `stage2-supabase` (или влить ветку в `main`).
+4. Пуш в ветку запускает «Публикация на GitHub Pages» (вкладка Actions). Адрес: `https://<логин>.github.io/<репозиторий>/`.
+5. Supabase → Authentication → URL Configuration → Site URL: новый адрес.
+Пути в приложении относительные, поэтому оно работает и в подпапке, и на своём домене. Приложение на экране «Домой» с адреса Netlify нужно поставить заново: адрес другой.

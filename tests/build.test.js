@@ -39,15 +39,16 @@ test('ключ service_role останавливает сборку', () => {
 test('все файлы оболочки service worker существуют (кроме vendor/supabase.js и config.js — их кладут вручную/сборка)', () => {
   const sw = fs.readFileSync(path.join(root, 'public', 'sw.js'), 'utf8');
   const shell = JSON.parse(sw.match(/const SHELL = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"'));
-  const generated = ['/config.js', '/vendor/supabase.js', '/'];
+  const generated = ['config.js', 'vendor/supabase.js', './'];
   const missing = shell.filter(f => !generated.includes(f) && !fs.existsSync(path.join(root, 'public', f)));
   assert.deepStrictEqual(missing, []);
   const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
-  [...html.matchAll(/<script src="(\/[^"]+)"/g)].map(m => m[1]).forEach(f => assert.ok(shell.includes(f), f + ' должен быть в оболочке SW'));
+  [...html.matchAll(/<script src="((?!https?:)[^"]+)"/g)].map(m => m[1]).forEach(f => assert.ok(shell.includes(f), f + ' должен быть в оболочке SW'));
 });
 
-test('manifest.json: standalone, start_url «/»', () => {
+test('manifest.json: standalone, start_url «./» (относительные пути для GitHub Pages)', () => {
   const m = JSON.parse(fs.readFileSync(path.join(root, 'public', 'manifest.json'), 'utf8'));
   assert.strictEqual(m.display, 'standalone');
-  assert.strictEqual(m.start_url, '/');
+  assert.strictEqual(m.start_url, './');
+  assert.ok(m.icons.every(i => !i.src.startsWith('/')), 'значки по относительным путям');
 });

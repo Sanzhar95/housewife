@@ -1,9 +1,9 @@
 // Офлайн-оболочка. Сеть в приоритете (всегда свежая версия), кэш — на случай, если связи нет.
 // Запросы к Supabase (другой адрес) и любые не-GET не кэшируются никогда.
-const CACHE = 'dk-shell-v3';
-const SHELL = ['/', '/index.html', '/logic.js', '/db.js', '/auth.js', '/api.js', '/xlsx-export.js', '/import-dishes.js',
-  '/vendor/supabase.js', '/config.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png',
-  '/icons/apple-touch-icon.png', '/icons/favicon-32.png'];
+const CACHE = 'dk-shell-v4';
+const SHELL = ['./', 'index.html', 'logic.js', 'db.js', 'auth.js', 'api.js', 'xlsx-export.js', 'import-dishes.js',
+  'vendor/supabase.js', 'config.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png',
+  'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -39,7 +39,7 @@ self.addEventListener('fetch', function (e) {
         return res;
       })
       .catch(function () {
-        return caches.match(req).then(function (r) { return r || caches.match('/index.html'); });
+        return caches.match(req).then(function (r) { return r || caches.match('index.html'); });
       })
   );
 });
