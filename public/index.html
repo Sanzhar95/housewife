@@ -2301,5 +2301,23 @@ async function startApp() {
   }
 })();
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Функция для поиска и удаления плашки Netlify
+    const removeBadge = () => {
+        const badge = document.querySelector('div[data-netlify-badge-text]')
+                   || document.getElementById('netlify-badge-outer');
+        if (badge) {
+            badge.remove();
+        }
+    };
+
+    // Запускаем сразу и через небольшие промежутки времени,
+    // так как Netlify может внедрять код с задержкой
+    removeBadge();
+    setTimeout(removeBadge, 500);
+    setTimeout(removeBadge, 1500);
+});
+</script>
 </body>
 </html>
