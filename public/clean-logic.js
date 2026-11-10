@@ -8,7 +8,7 @@
  * Из Code.gs без изменений: генеральные дела, расходники, «Готово / Отменить / Завтра», закрепление дел
  * после действия, «Быстрая уборка», тексты ошибок.
  *
- *   data = { settings{mode,rest,remind,ready}, picks:[{id,on,min,times,day}], seeds:{неделя:n},
+ *   data = { settings{mode,rest,remind,ready}, picks:[{id,on,min,times,days:[1–7, не больше times]}], seeds:{неделя:n},
  *            rows:[{week,id,day,moved,done,spent,prev}], generals:[{id,on,months,last}],
  *            supplies:[{id,name,unit,stock|null,min,kind,per}], rooms:[…] (от прежней версии, хранится как есть) }
  *
@@ -121,16 +121,23 @@ function settingsPatch(p) {
   return o;
 }
 
+/** Свои дни дела: days [1–7] (прежняя версия хранила один day). Пусто — дни выбирает приложение. */
+function pickDays(p, base) {
+  let d = Array.isArray(p.days) ? p.days : (p.day !== undefined && p.day !== null && p.day !== '' ? [p.day] : null);
+  if (!d) return base.day ? [base.day] : [];
+  return d.map(x => Math.round(Number(x))).filter((x, i, a) => x >= 1 && x <= 7 && a.indexOf(x) === i).sort((a, b) => a - b);
+}
+
 function pickNorm(p, base) {
   const min = Math.round(Number(p.min));
-  const times = Math.round(Number(p.times));
-  const day = Math.round(Number(p.day));
+  const t = Math.round(Number(p.times));
+  const times = t >= 1 && t <= 3 ? t : base.times;
   return {
     id: base.id,
     on: p.on === undefined ? base.on : !!p.on,
     min: min >= 5 && min <= 180 ? min : base.min,
-    times: times >= 1 && times <= 3 ? times : base.times,
-    day: day >= 0 && day <= 7 && p.day !== undefined && p.day !== null && p.day !== '' ? day : base.day
+    times,
+    days: pickDays(p, base).slice(0, times)   // дней не больше, чем раз в неделю
   };
 }
 
@@ -139,9 +146,11 @@ function cleanTasks(c) {
   const s = c.settings, list = [];
   c.picks.filter(p => p.on).forEach(p => {
     const t = CATALOG.find(x => x.id === p.id);
+    // свои дни — по порядку недели; выходные пропускаются (такие копии раскладываются случайно)
+    const own = s.mode === 'themes' ? p.days.filter(d => s.rest.indexOf(d) < 0) : [];
     for (let i = 1; i <= p.times; i++) {
       list.push({ id: p.id + '.' + i, group: p.id, zone: t.zone, emo: t.emo, title: t.name, sub: t.sub, k: t.k, min: p.min,
-        fixed: s.mode === 'themes' && i === 1 && p.day && s.rest.indexOf(p.day) < 0 ? p.day : 0, gen: false });
+        fixed: own[i - 1] || 0, gen: false });
     }
   });
   return list;
@@ -362,7 +371,7 @@ function create(env) {
       resetMoves(c, week);
     },
 
-    /** Первый выбор дел и сохранение списка: picks [{id, on, min?, times?, day?}], settings {mode, rest, remind}. */
+    /** Первый выбор дел и сохранение списка: picks [{id, on, min?, times?, days?}], settings {mode, rest, remind}. */
     saveCleanPicks(c, picks, settings) {
       const given = {};
       (Array.isArray(picks) ? picks : []).forEach(p => { if (p && p.id) given[String(p.id)] = p; });
@@ -373,10 +382,13 @@ function create(env) {
       resetMoves(c, mondayOf(todayFn()));
     },
 
-    /** Одно дело из шторки: {id, on?, min?, times?, day?}. */
+    /** Одно дело из шторки: {id, on?, min?, times?, days?}. Дней больше, чем раз в неделю, — ошибка. */
     savePick(c, p) {
       const base = CATALOG.find(t => t.id === (p && p.id));
       if (!base) throw new Error('Такого дела нет в списке.');
+      if (Array.isArray(p.days) && pickDays(p, base).length > (Number(p.times) || c.picks.find(x => x.id === base.id).times)) {
+        throw new Error('Дней можно выбрать столько, сколько раз в неделю.');
+      }
       const i = c.picks.findIndex(x => x.id === base.id);
       const next = pickNorm(Object.assign({}, c.picks[i], p), base);
       if (!next.on && !c.picks.some(x => x.on && x.id !== base.id)) throw new Error('Отметьте хотя бы одно дело.');

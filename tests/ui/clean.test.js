@@ -114,12 +114,19 @@ for (const width of [390, 360, 320]) {
       await page.waitForSelector('.presets');
       await noHScroll(page, 'мои дела');
       await page.locator('.pick', { hasText: 'Глажка' }).locator('.pmain').click();
-      await page.waitForSelector('#dlg .seg');
-      await page.click('#dlg .seg button:has-text("30")');
-      await page.click('#dlg .seg button:text-is("Пт")');
+      await page.waitForSelector('#dlg .cseg');
+      await page.click('#dlg .cseg button:has-text("30")');
+      // 2 раза в неделю → можно отметить 2 дня: Вс уже выбран, добавляем Ср; третий день (Пт) вытесняет самый ранний (Вс)
+      await page.click('#dlg .cseg button:text-is("2 раза")');
+      await page.click('#dlg .cseg button:text-is("Ср")');
+      assert.match(await page.textContent('#dlg'), /выбрано 2 из 2/);
+      await page.click('#dlg .cseg button:text-is("Пт")');
+      assert.deepStrictEqual(await page.$$eval('#dlg .cseg button.on', a => a.map(b => b.textContent)).then(x => x.filter(t => /^(Пн|Вт|Ср|Чт|Пт|Сб|Вс)$/.test(t))), ['Ср', 'Пт']);
+      assert.ok(await page.isDisabled('#dlg .cseg button:text-is("Сб")'), 'выходной не выбрать');
       await noHScroll(page, 'шторка');
       await page.click('#dlg .btn.primary');
-      await page.waitForFunction(() => CS.tasks.find(t => t.id === 'iron.1').day === 5 && CS.tasks.find(t => t.id === 'iron.1').min === 30);
+      await page.waitForFunction(() => { const a = CS.tasks.filter(t => t.group === 'iron').map(t => t.day).sort().join(); return a === '3,5' && CS.tasks.find(t => t.id === 'iron.1').min === 30; });
+      assert.match(await page.textContent('.pick:has-text("Глажка")'), /30 мин · 2 р\/нед · Ср, Пт/);
       // режим «Всё вперемешку»
       await page.click('.preset:has-text("Всё вперемешку")');
       await page.waitForFunction(() => CS.settings.mode === 'mix' && CS.tasks.every(t => t.rnd));

@@ -509,9 +509,11 @@ details.hs[open]>summary{color:var(--accent-deep)}
 .pick .pmain{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:4px 0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px}
 .pick .ttl{flex:1;min-width:0;display:flex;flex-direction:column}.pick .ttl b{font-size:15px}.pick .ttl span{font-size:12.5px;color:var(--muted)}
 .pick .chip{flex:none}
-.seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{min-height:44px;min-width:44px;padding:0 12px;border-radius:99px;border:2px solid var(--line);background:var(--surface);font:inherit;font-weight:800;color:var(--ink);cursor:pointer}
-.seg button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.cseg{display:flex;gap:6px;flex-wrap:wrap}
+.cseg button{flex:none;min-height:44px;min-width:44px;padding:0 12px;border-radius:99px;border:2px solid var(--line);background:var(--surface);font:inherit;font-weight:800;color:var(--ink);cursor:pointer;white-space:nowrap}
+.cseg button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.cseg button.off{opacity:.4;cursor:default}
+.cseg.days button{padding:0 8px}
 .cday-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .cday-head h3{font-size:19px}
 .ctask{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px 12px;margin-bottom:10px}
@@ -2422,32 +2424,53 @@ function cWeek(v, C) {
 const pickMeta = (C, p, mode) => {
   const bits = [p.min + ' мин'];
   if (p.times > 1) bits.push(p.times + ' р/нед');
-  bits.push(mode === 'themes' && p.day && C.settings.rest.indexOf(p.day) < 0 ? CDAYS[p.day] : '🎲');
+  const own = mode === 'themes' ? p.days.filter(d => C.settings.rest.indexOf(d) < 0) : [];
+  bits.push(own.length ? own.map(d => CDAYS[d]).join(', ') + (own.length < p.times ? ' + 🎲' : '') : '🎲');
   return bits.join(' · ');
 };
 
-/** Шторка дела: минуты, как часто, в какой день; «Не делаю». */
+/** Шторка дела: минуты, сколько раз в неделю и в какие дни (дней — не больше, чем раз); «Не делаю». */
 function pickSheet(C, p) {
   const t = C.catalog.find(x => x.id === p.id);
-  const cur = { min: p.min, times: p.times, day: p.day };
-  const seg = (key, items) => {
-    const box = h('div', { class: 'seg' });
-    const draw = () => box.replaceChildren(...items.map(([val, lbl]) => h('button', { type: 'button', class: cur[key] === val ? 'on' : '', 'aria-pressed': String(cur[key] === val), onclick: () => { cur[key] = val; draw(); } }, lbl)));
+  const cur = { min: p.min, times: p.times };
+  let order = p.days.slice();          // выбранные дни в порядке нажатия: лишний вытесняет самый ранний
+  const themed = C.settings.mode === 'themes';
+  const rest = C.settings.rest;
+  const seg = (key, items, after) => {
+    const box = h('div', { class: 'cseg' });
+    const draw = () => box.replaceChildren(...items.map(([val, lbl]) => h('button', { type: 'button', class: cur[key] === val ? 'on' : '', 'aria-pressed': String(cur[key] === val), onclick: () => { cur[key] = val; draw(); if (after) after(); } }, lbl)));
     draw();
     return box;
   };
+  const daysHint = h('div', { class: 'muted small' });
+  const anyBtn = h('div', { class: 'cseg' });
+  const daysBox = h('div', { class: 'cseg days' });
+  const drawDays = () => {
+    order = order.slice(-cur.times);
+    daysHint.textContent = (cur.times === 1 ? 'Можно отметить 1 день' : 'Можно отметить до ' + cur.times + ' дней') + ' · выбрано ' + order.length + ' из ' + cur.times
+      + (order.length < cur.times ? '. Остальное разложу сама 🎲' : '');
+    anyBtn.replaceChildren(h('button', { type: 'button', class: order.length ? '' : 'on', 'aria-pressed': String(!order.length), onclick: () => { order = []; drawDays(); } }, '🎲 Любые — выберет приложение'));
+    daysBox.replaceChildren(
+      ...[1, 2, 3, 4, 5, 6, 7].map(d => {
+        const on = order.indexOf(d) >= 0, off = rest.indexOf(d) >= 0;
+        return h('button', { type: 'button', class: (on ? 'on' : '') + (off ? ' off' : ''), disabled: off, 'aria-pressed': String(on), 'aria-label': CDAYS_FULL[d] + (off ? ', выходной' : ''), onclick: () => {
+          if (on) order = order.filter(x => x !== d);
+          else { order.push(d); if (order.length > cur.times) order.shift(); }
+          drawDays();
+        } }, CDAYS[d]);
+      }));
+  };
+  drawDays();
   const mins = CleanLogic.MINUTES.indexOf(p.min) >= 0 ? CleanLogic.MINUTES : CleanLogic.MINUTES.concat(p.min).sort((a, b) => a - b);
-  const themed = C.settings.mode === 'themes';
   modal({
     title: t.emo + ' ' + t.name,
     body: h('div', { class: 'form' }, h('div', { class: 'muted', text: t.sub }),
       h('b', { text: 'Сколько минут' }), seg('min', mins.map(m => [m, String(m)])),
-      h('b', { text: 'Как часто' }), seg('times', [[1, 'Раз в неделю'], [2, '2 раза'], [3, '3 раза']]),
-      themed ? [h('b', { text: 'В какой день' }), seg('day', [[0, '🎲 Любой']].concat([1, 2, 3, 4, 5, 6, 7].map(d => [d, CDAYS[d]])))] : null,
-      h('div', { class: 'warnline', text: themed ? '«Любой» — приложение само выберет свободный день и будет менять его от недели к неделе.' : 'В режиме «Всё вперемешку» дни выбирает приложение.' })),
+      h('b', { text: 'Сколько раз в неделю' }), seg('times', [[1, 'Раз в неделю'], [2, '2 раза'], [3, '3 раза']], themed ? drawDays : null),
+      themed ? [h('b', { text: 'В какие дни' }), daysBox, anyBtn, daysHint] : h('div', { class: 'warnline', text: 'В режиме «Всё вперемешку» дни выбирает приложение.' })),
     extra: { text: p.on ? 'Не делаю' : 'Делаю', cls: 'ghost', onClick: async () => { if (await cact('savePick', { id: p.id, on: !p.on })) $('#dlg').close(); } },
     okText: 'Сохранить',
-    onOk: async () => ((await cact('savePick', Object.assign({ id: p.id, on: true }, themed ? cur : { min: cur.min, times: cur.times }))) ? true : false)
+    onOk: async () => ((await cact('savePick', Object.assign({ id: p.id, on: true, min: cur.min, times: cur.times }, themed ? { days: order.slice(-cur.times) } : {}))) ? true : false)
   });
 }
 

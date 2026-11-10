@@ -105,11 +105,11 @@ test('дело 2–3 раза в неделю: копии не в один де�
 test('шторка дела: минуты, день, «Не делаю»; последнее дело выключить нельзя; неизвестное дело — ошибка', () => {
   const x = mk();
   let d = ready(x);
-  d = x.L.apply('savePick', d, [{ id: 'iron', min: 30, day: 5 }]).data;
+  d = x.L.apply('savePick', d, [{ id: 'iron', min: 30, days: [5] }]).data;
   let st = x.L.state(d);
   assert.strictEqual(dayOf(st, 'iron.1'), 5);
   assert.strictEqual(st.tasks.find(t => t.id === 'iron.1').min, 30);
-  d = x.L.apply('savePick', d, [{ id: 'iron', day: 0 }]).data;
+  d = x.L.apply('savePick', d, [{ id: 'iron', days: [] }]).data;
   assert.strictEqual(x.L.state(d).tasks.find(t => t.id === 'iron.1').rnd, true);
   d = x.L.apply('savePick', d, [{ id: 'iron', on: false }]).data;
   assert.ok(!x.L.state(d).tasks.some(t => t.group === 'iron'));
@@ -287,9 +287,9 @@ test('переход со старой версии (комнаты): данны
 test('нормализация идемпотентна; неизвестные поля (в том числе кухня) отбрасываются', () => {
   const x = mk(), d = ready(x);
   assert.deepStrictEqual(x.L.normalize(d), d);
-  const n = x.L.normalize({ kitchen: [1], products: [2], picks: [{ id: 'iron', min: 999, times: 9, day: 12 }, { id: 'zzz', on: true }] });
+  const n = x.L.normalize({ kitchen: [1], products: [2], picks: [{ id: 'iron', min: 999, times: 9, days: [12] }, { id: 'zzz', on: true }] });
   assert.strictEqual(n.kitchen, undefined);
-  assert.deepStrictEqual(n.picks.find(p => p.id === 'iron'), { id: 'iron', on: true, min: 25, times: 1, day: 7 });
+  assert.deepStrictEqual(n.picks.find(p => p.id === 'iron'), { id: 'iron', on: true, min: 25, times: 1, days: [] });   // день 12 отброшен
   assert.ok(!n.picks.some(p => p.id === 'zzz'));
   assert.strictEqual(x.L.normalize(null).generals.length, 8);
 });
@@ -310,4 +310,44 @@ test('свой расходник добавляется и удаляется; 
   const s = d.supplies.find(y => y.name === 'Губки');
   assert.deepStrictEqual([s.unit, s.stock, s.min, s.kind, s.per], ['МЛ', null, 2, '', 1]);
   assert.strictEqual(x.L.apply('deleteSupply', d, [s.id]).data.supplies.some(y => y.id === s.id), false);
+});
+
+test('2–3 раза в неделю: можно отметить столько же дней; дела встают ровно в эти дни', () => {
+  const x = mk();
+  let d = ready(x);
+  d = x.L.apply('savePick', d, [{ id: 'wash', times: 2, days: [1, 4] }]).data;
+  d = x.L.apply('savePick', d, [{ id: 'counter', times: 3, days: [5, 2, 7] }]).data;
+  const st = x.L.state(d);
+  assert.deepStrictEqual(d.picks.find(p => p.id === 'counter').days, [2, 5, 7]);
+  assert.deepStrictEqual(st.tasks.filter(t => t.group === 'wash').map(t => [t.id, t.day, t.rnd]), [['wash.1', 1, false], ['wash.2', 4, false]].sort((a, b) => a[1] - b[1]));
+  assert.deepStrictEqual(st.tasks.filter(t => t.group === 'counter').map(t => t.day).sort(), [2, 5, 7]);
+  assert.throws(() => x.L.apply('savePick', d, [{ id: 'wash', times: 2, days: [1, 3, 5] }]), /Дней можно выбрать столько, сколько раз в неделю\./);
+});
+
+test('выбрано меньше дней, чем раз в неделю: остальные копии — случайно, не в те же и не в соседние дни', () => {
+  const x = mk();
+  const d = x.L.apply('savePick', ready(x), [{ id: 'wash', times: 3, days: [1] }]).data;
+  const ds = x.L.state(d).tasks.filter(t => t.group === 'wash');
+  assert.strictEqual(ds.find(t => t.id === 'wash.1').day, 1);
+  assert.deepStrictEqual(ds.map(t => t.rnd), [false, true, true]);
+  const days = ds.map(t => t.day).sort();
+  for (let i = 1; i < days.length; i++) assert.ok(days[i] - days[i - 1] >= 2, String(days));
+});
+
+test('меньше раз в неделю — лишние дни отбрасываются; выходной из своих дней пропускается', () => {
+  const x = mk();
+  let d = x.L.apply('savePick', ready(x), [{ id: 'wash', times: 3, days: [1, 3, 6] }]).data;
+  const st = x.L.state(d);
+  assert.deepStrictEqual(st.tasks.filter(t => t.group === 'wash' && !t.rnd).map(t => t.day), [1, 3]);   // суббота — выходной
+  assert.ok(st.tasks.filter(t => t.group === 'wash').every(t => t.day !== 6));
+  d = x.L.apply('savePick', d, [{ id: 'wash', times: 1 }]).data;
+  assert.deepStrictEqual(d.picks.find(p => p.id === 'wash').days, [1]);
+});
+
+test('прежний формат (один day) читается как days', () => {
+  const x = mk();
+  const n = x.L.normalize({ picks: [{ id: 'iron', on: true, min: 25, times: 1, day: 5 }, { id: 'wash', on: true, min: 30, times: 1, day: 0 }] });
+  assert.deepStrictEqual(n.picks.find(p => p.id === 'iron').days, [5]);
+  assert.deepStrictEqual(n.picks.find(p => p.id === 'wash').days, []);
+  assert.deepStrictEqual(x.L.normalize(n), n);
 });
