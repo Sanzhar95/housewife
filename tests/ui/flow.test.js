@@ -10,6 +10,13 @@ const { stubSource } = require('./stub');
 let playwright = null;
 try { playwright = require('playwright'); } catch (e) { /* нет Playwright */ }
 const seed = require('../fixtures/state.synthetic.snapshot.json');
+
+/** Контекст браузера с фиксированной датой (среда 4 ноября 2026): данные-образец заполнены на эту неделю, тесты не зависят от дня запуска. */
+async function newCtx(browser, opts) {
+  const ctx = await browser.newContext(opts);
+  await ctx.clock.setFixedTime(new Date('2026-11-04T12:00:00+05:00'));
+  return ctx;
+}
 const PUB = path.join(__dirname, '..', '..', 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png' };
 
@@ -30,7 +37,7 @@ test('вход, меню, готовка, перезагрузка (390px)', { s
   const server = await serve();
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await playwright.chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, deviceScaleFactor: 1 });
+  const ctx = await newCtx(browser, { viewport: { width: 390, height: 800 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
@@ -109,7 +116,7 @@ test('ссылка-приглашение: плохой токен — поня�
   const server = await serve();
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await playwright.chromium.launch();
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 800 } })).newPage();
+  const page = await (await newCtx(browser, { viewport: { width: 390, height: 800 } })).newPage();
   try {
     await page.goto(base + '/#/join/badtoken1234');
     await page.waitForSelector('.auth');
@@ -135,7 +142,7 @@ test('блюда: загрузка из Excel — бланк, проверка, 
   const server = await serve();
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await playwright.chromium.launch();
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 800 }, deviceScaleFactor: 1 })).newPage();
+  const page = await (await newCtx(browser, { viewport: { width: 390, height: 800 }, deviceScaleFactor: 1 })).newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error' && !/favicon|manifest|ERR_NAME_NOT_RESOLVED|fonts|cdnjs|net::/.test(m.text())) errors.push(m.text()); });
@@ -236,7 +243,7 @@ test('меню: геометрия шапки, плашки «Новое», сч
   const box = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, w: r.width }; }, sel);
   try {
     // 1) плашка «Новое» показана (чистое хранилище)
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const ctx = await newCtx(browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     await login(page);
     const news = await box(page, '.news');
@@ -267,7 +274,7 @@ test('меню: геометрия шапки, плашки «Новое», сч
     await ctx.close();
 
     // 2) без плашки «Новое»: заголовок «Сегодня» целиком на первом экране
-    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const ctx2 = await newCtx(browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
     const p2 = await ctx2.newPage();
     await p2.addInitScript(() => { try { localStorage.setItem('dk_news_portions_v1', '1'); } catch (e) { /* нет хранилища */ } });
     await login(p2);
@@ -284,7 +291,7 @@ test('склад, блюда: геометрия и отображение на�
   const server = await serve();
   const base = 'http://127.0.0.1:' + server.address().port;
   const browser = await playwright.chromium.launch();
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })).newPage();
+  const page = await (await newCtx(browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 })).newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   try {
@@ -361,7 +368,7 @@ test('анимации: reduce выключает всё; шторка выез�
   }, [sel, pseudo]);
   try {
     // 1) reduce: у всего нет анимаций и переходов
-    const rctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const rctx = await newCtx(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
     const rp = await rctx.newPage();
     await login(rp);
     await rp.evaluate(() => toast('Проверка'));
@@ -374,7 +381,7 @@ test('анимации: reduce выключает всё; шторка выез�
     await rctx.close();
 
     // 2) без reduce: шторка и затемнение анимируются, ≤0.25с; toast — тоже
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'no-preference' });
+    const ctx = await newCtx(browser, { viewport: { width: 390, height: 844 }, reducedMotion: 'no-preference' });
     const page = await ctx.newPage();
     await login(page);
     await page.evaluate(() => modal({ title: 'T', body: document.createTextNode('x'), onOk: () => {} }));
