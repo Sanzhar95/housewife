@@ -23,14 +23,14 @@ function mk() {
   const db = fakeDb();
   return { logic, db, store: CleanStore.create({ rpc: db.rpc, logic }) };
 }
-const ROOMS = [{ name: 'Спальня', type: 'bedroom' }];
+const ROOMS = [];
 
 test('пустая база: load ничего не пишет; первое действие создаёт данные с версией 1', async () => {
   const { db, store } = mk();
   const st = await store.load();
   assert.strictEqual(st.ready, false);
   assert.strictEqual(db.version, 0);
-  const r = await store.act('saveCleanRooms', ROOMS, {});
+  const r = await store.act('saveCleanPicks', ROOMS, {});
   assert.strictEqual(r.state.ready, true);
   assert.strictEqual(db.version, 1);
   assert.strictEqual(db.data.supplies.length, 5);
@@ -39,7 +39,7 @@ test('пустая база: load ничего не пишет; первое д�
 test('конфликт версий: чужая правка не теряется, действие применяется заново к свежим данным', async () => {
   const { db, store, logic } = mk();
   await store.load();
-  await store.act('saveCleanRooms', ROOMS, {});
+  await store.act('saveCleanPicks', ROOMS, {});
   const sid = db.data.supplies[0].id;
   db.conflictOnce = 1;
   db.other = d => logic.apply('restockSupply', d, [d.supplies[1].id, 300]).data;   // с другого телефона купили средство
@@ -52,26 +52,26 @@ test('конфликт версий: чужая правка не теряетс
 
 test('постоянный конфликт: после нескольких попыток — понятная ошибка, данные целы', async () => {
   const { db, store } = mk();
-  await store.act('saveCleanRooms', ROOMS, {});
+  await store.act('saveCleanPicks', ROOMS, {});
   const before = JSON.stringify(db.data);
   db.conflictOnce = 99;
-  await assert.rejects(store.act('saveCleanSettings', { limit: 90 }), /Данные изменились на другом телефоне\. Попробуйте ещё раз/);
+  await assert.rejects(store.act('saveCleanSettings', { mode: 'mix' }), /Данные изменились на другом телефоне\. Попробуйте ещё раз/);
   assert.strictEqual(JSON.stringify(db.data), before);
 });
 
 test('ошибка логики: в базу ничего не пишется, очередь не ломается', async () => {
   const { db, store } = mk();
-  await store.act('saveCleanRooms', ROOMS, {});
+  await store.act('saveCleanPicks', ROOMS, {});
   const v = db.version;
   await assert.rejects(store.act('restockSupply', 'нет', 5), /Такого расходника нет\./);
   assert.strictEqual(db.version, v);
-  await store.act('saveCleanSettings', { limit: 45 });
-  assert.strictEqual(db.data.settings.limit, 45);
+  await store.act('saveCleanSettings', { mode: 'mix' });
+  assert.strictEqual(db.data.settings.mode, 'mix');
 });
 
 test('быстрые нажатия подряд идут по очереди: без потерянных обновлений', async () => {
   const { db, store } = mk();
-  await store.act('saveCleanRooms', ROOMS, {});
+  await store.act('saveCleanPicks', ROOMS, {});
   const id = db.data.supplies[0].id;
   await Promise.all([store.act('restockSupply', id, 100), store.act('restockSupply', id, 100), store.act('restockSupply', id, 100)]);
   assert.strictEqual(db.data.supplies[0].stock, 300);
@@ -79,12 +79,12 @@ test('быстрые нажатия подряд идут по очереди: �
 
 test('копия JSON: выгрузка и загрузка возвращают те же данные; чужой файл — понятная ошибка', async () => {
   const a = mk(), b = mk();
-  await a.store.act('saveCleanRooms', [{ name: 'Детская', type: 'kids' }], { limit: 45, rest: [6, 7] });
+  await a.store.act('saveCleanPicks', [{ id: 'iron', min: 45 }], { mode: 'mix', rest: [6, 7] });
   const text = a.store.exportJson();
   const st = await b.store.importJson(text);
-  assert.strictEqual(st.settings.limit, 45);
-  assert.deepStrictEqual(b.db.data.rooms.map(r => r.name), ['Детская']);
+  assert.strictEqual(st.settings.mode, 'mix');
+  assert.strictEqual(b.db.data.picks.find(p => p.id === 'iron').min, 45);
   await assert.rejects(b.store.importJson('не json'), /Не получилось прочитать файл/);
   await assert.rejects(b.store.importJson('{"a":1}'), /Это не копия «Уборки»/);
-  assert.strictEqual(b.db.data.rooms.length, 1);                          // после ошибок данные целы
+  assert.strictEqual(b.db.data.settings.mode, 'mix');                          // после ошибок данные целы
 });

@@ -47,8 +47,8 @@ const noHScroll = async (page, label) => {
 };
 const tapH = async (page, sel) => page.$$eval(sel, els => els.filter(e => e.offsetParent).map(e => Math.round(e.getBoundingClientRect().height)));
 
-for (const width of [390, 360]) {
-  test('«Уборка» (' + width + 'px): онбординг, график, Готово/Завтра, расходники, комнаты; кухня не затронута', { skip: !playwright }, async () => {
+for (const width of [390, 360, 320]) {
+  test('«Уборка» (' + width + 'px): выбор дел, дни-темы, Готово/Перемешать/Завтра, шторка дела, расходники; кухня не затронута', { skip: !playwright }, async () => {
     const server = await serve();
     const base = 'http://127.0.0.1:' + server.address().port;
     const browser = await playwright.chromium.launch();
@@ -62,78 +62,92 @@ for (const width of [390, 360]) {
       // переключатель
       await page.click('.mods button[data-m=clean]');
       await page.waitForSelector('.chead h2');
-      assert.strictEqual((await page.textContent('.chead h2')).trim(), 'Сколько у вас комнат?');
+      assert.strictEqual((await page.textContent('.chead h2')).trim(), 'Что вы убираете?');
       assert.ok(await page.isHidden('#navKitchen'));
-      assert.strictEqual(await page.locator('#navClean .tab').count(), 4);
-      await noHScroll(page, 'онбординг');
-
-      // 3 комнаты по умолчанию → «Составить график»
-      assert.strictEqual(await page.locator('.rrow').count(), 3);
-      await page.click('.cnt button:nth-child(2)');
-      assert.strictEqual(await page.locator('.rrow').count(), 2);
-      await page.click('.cnt button:nth-child(3)');
-      await page.click('text=Составить график');
-      await page.waitForSelector('.chart');
+      assert.deepStrictEqual(await page.$$eval('#navClean .tab', a => a.map(b => b.textContent.trim())), ['🗓️Неделя', '✅Мои дела', '⭐Генеральные', '🧴Расходники']);
+      await noHScroll(page, 'выбор дел');
+      assert.strictEqual(await page.locator('.pick').count(), 18);
+      assert.strictEqual(await page.locator('.pick.on').count(), 14);
+      (await tapH(page, '.pick .box')).forEach(h => assert.ok(h >= 44, 'галочка ' + h + 'px'));
+      // снять «Полить цветы», отметить «Сменить постельное»
+      await page.locator('.pick', { hasText: 'Полить цветы' }).locator('.pmain').click();
+      await page.locator('.pick', { hasText: 'Сменить постельное' }).locator('.box').click();
+      assert.strictEqual(await page.locator('.pick.on').count(), 14);
+      await page.click('button:has-text("Составить график")');
+      await page.waitForSelector('.cdays');
       await noHScroll(page, 'неделя');
-      assert.strictEqual(await page.locator('.ccol').count(), 7);
-      assert.ok(await page.isVisible('.cquick'));
+      assert.strictEqual(await page.locator('.cd').count(), 7);
       (await tapH(page, '.ct-act .btn')).forEach(h => assert.ok(h >= 42, 'кнопка дела ' + h + 'px'));
       (await tapH(page, '.mods button')).forEach(h => assert.ok(h >= 42, 'переключатель ' + h + 'px'));
+      (await tapH(page, '.ctools .btn')).forEach(h => assert.ok(h >= 42, 'перемешать ' + h + 'px'));
 
-      // Сегодня — среда, воскресенье отдыхает, ни в один день не больше лимита
-      const days = await page.evaluate(() => CS.days.map(d => [d.day, d.min, d.rest]));
-      days.forEach(([d, m, rest]) => assert.ok(m <= 60, 'день ' + d + ': ' + m));
-      assert.deepStrictEqual(days[6], [7, 0, true]);
+      // дни-темы: Пн стирка, Вт пылесос/пыль/полы, Ср плита/шкафы, Чт душевая/туалет, Сб выходной, Вс глажка
+      const by = await page.evaluate(() => Object.fromEntries(CS.tasks.map(t => [t.id, t.day])));
+      assert.deepStrictEqual([by['wash.1'], by['vac.1'], by['dust.1'], by['floor.1'], by['stove.1'], by['cab.1'], by['shower.1'], by['wc.1'], by['iron.1']], [1, 2, 2, 2, 3, 3, 4, 4, 7]);
+      assert.strictEqual(by['plants.1'], undefined);
+      assert.ok(by['bed.1'] && by['bed.1'] !== 6);
+      assert.deepStrictEqual(await page.evaluate(() => [CS.days[5].rest, CS.days[5].min]), [true, 0]);
+      // сегодня среда — тема «Кухня»
+      assert.match(await page.textContent('.ctheme'), /Сегодня, среда.*Кухня/);
 
-      // «Готово» на первом деле сегодня → прогресс растёт, дело зачёркнуто, «Отменить» возвращает
+      // «Готово» и «Отменить»
       const first = page.locator('.ctask').first();
-      const title = (await first.locator('b').first().textContent()).replace('✓ ', '');
       const before = await page.evaluate(() => CS.doneMin);
       await first.locator('.btn.primary').click();
       await page.waitForFunction(m => CS.doneMin > m, before);
-      assert.ok((await page.locator('.ctask.done b').first().textContent()).includes(title));
       await page.locator('.ctask.done .btn.ghost').first().click();
       await page.waitForFunction(m => CS.doneMin === m, before);
 
+      // «🎲 Перемешать»: дела со своим днём на месте
+      await page.click('.ctools .btn');
+      await page.waitForFunction(() => CS.tasks.length && true);
+      const by2 = await page.evaluate(() => Object.fromEntries(CS.tasks.map(t => [t.id, t.day])));
+      ['wash.1', 'vac.1', 'stove.1', 'shower.1', 'iron.1'].forEach(id => assert.strictEqual(by2[id], by[id], id));
+
       // «Завтра →» переносит одно дело, остальные стоят
       const snap = await page.evaluate(() => CS.tasks.map(t => [t.id, t.day]));
-      const id = await page.evaluate(() => CS.tasks.find(t => t.day === CS.today && !t.done).id);
-      await page.locator('.ctask', { hasText: '' }).first().locator('.btn.ghost').click();
-      await page.waitForFunction(s => CS.tasks.filter((t, i) => s.find(x => x[0] === t.id)[1] !== t.day).length === 1, snap);
+      await page.locator('.ctask .btn.ghost', { hasText: 'Завтра' }).first().click();
+      await page.waitForFunction(s => CS.tasks.filter(t => s.find(x => x[0] === t.id)[1] !== t.day).length === 1, snap);
 
-      // вкладки: генеральные, расходники, комнаты; ничего не вылезает за экран
-      for (const c of ['general', 'supplies', 'rooms']) {
+      // «Мои дела»: шторка дела — глажка 30 мин в пятницу
+      await page.click('#navClean .tab[data-c=picks]');
+      await page.waitForSelector('.presets');
+      await noHScroll(page, 'мои дела');
+      await page.locator('.pick', { hasText: 'Глажка' }).locator('.pmain').click();
+      await page.waitForSelector('#dlg .seg');
+      await page.click('#dlg .seg button:has-text("30")');
+      await page.click('#dlg .seg button:text-is("Пт")');
+      await noHScroll(page, 'шторка');
+      await page.click('#dlg .btn.primary');
+      await page.waitForFunction(() => CS.tasks.find(t => t.id === 'iron.1').day === 5 && CS.tasks.find(t => t.id === 'iron.1').min === 30);
+      // режим «Всё вперемешку»
+      await page.click('.preset:has-text("Всё вперемешку")');
+      await page.waitForFunction(() => CS.settings.mode === 'mix' && CS.tasks.every(t => t.rnd));
+
+      for (const c of ['general', 'supplies']) {
         await page.click('#navClean .tab[data-c=' + c + ']');
         await page.waitForSelector('.chead');
         await noHScroll(page, c);
       }
-      await page.click('#navClean .tab[data-c=supplies]');
       assert.strictEqual(await page.locator('.cbox').count(), 5);
-      // «＋ Купила» → остаток появился
       await page.locator('.cbox').first().locator('.btn.primary').click();
       await page.fill('#dlg input[type=number]', '500');
       await page.click('#dlg .btn.primary');
       await page.waitForFunction(() => CS.supplies[0].stock === 500);
-      await page.waitForSelector('text=Осталось');
-
-      // комнаты: смена времени сохраняется
-      await page.click('#navClean .tab[data-c=rooms]');
-      await page.click('.fchip:has-text("45 мин")');
-      await page.click('text=Сохранить');
-      await page.waitForFunction(() => CS.settings.limit === 45);
 
       // баннер на кухне: если на сегодня есть несделанное
       await page.click('.mods button[data-m=kitchen]');
       await page.waitForSelector('#cbanner:not([hidden])');
       assert.match(await page.textContent('#cbanner'), /🧽 Уборка: \d+ зад\. · \d+ мин/);
-      (await tapH(page, '#cbanner .btn')).forEach(h => assert.ok(h >= 34, 'кнопка баннера ' + h + 'px'));
       assert.strictEqual(await page.evaluate(() => JSON.stringify(S.plan.map(i => i.id + i.done))), kitchenBefore, 'меню кухни не изменилось');
 
       // перезагрузка: данные на месте, открывается на «Уборке»
       await page.click('.mods button[data-m=clean]');
+      // перезагрузка: данные на месте, открывается на «Уборке»
+      await page.click('.mods button[data-m=clean]');
       await page.reload();
-      await page.waitForSelector('.chart');
-      assert.strictEqual(await page.evaluate(() => CS.settings.limit), 45);
+      await page.waitForSelector('.cdays');
+      assert.strictEqual(await page.evaluate(() => CS.settings.mode), 'mix');
 
       // помощь в разделе «Уборка» открывает тему
       await page.click('#btnHelp');

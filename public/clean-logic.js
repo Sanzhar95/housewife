@@ -1,18 +1,21 @@
 /**
  * Домашний помощник: модуль «Уборка» (предметная логика в браузере).
- * Порт блока «Уборка» из присланного Code.gs: шаблоны, планировщик (штрафы), генеральные дела,
- * расходники, «Готово / Отменить / Завтра», тексты ошибок — без изменений. Слой хранения свой:
- * все данные модуля — один объект data (на семью), который лежит в таблице clean_data одной строкой JSON.
  *
- *   data = { settings, rooms:[{id,name,type}], rows:[{week,id,day,moved,done,spent,prev}],
- *            generals:[{id,on,months,last}], supplies:[{id,name,unit,stock|null,min,kind,per}] }
+ * Схема (по просьбе заказчицы, 2026-11-10): приложение даёт готовый СПИСОК ДЕЛ по зонам, хозяйка только
+ * отмечает свои. У дней недели — темы (Пн стирка, Вт комнаты, Ср кухня, Чт ванная и туалет, Пт мелочи,
+ * Сб выходной, Вс глажка). Дела без своего дня раскладываются СЛУЧАЙНО (поровну по времени) по свободным
+ * дням; «🎲 Перемешать» даёт другой вариант. Режим «Всё вперемешку» раскладывает случайно все дела.
+ * Из Code.gs без изменений: генеральные дела, расходники, «Готово / Отменить / Завтра», закрепление дел
+ * после действия, «Быстрая уборка», тексты ошибок.
+ *
+ *   data = { settings{mode,rest,remind,ready}, picks:[{id,on,min,times,day}], seeds:{неделя:n},
+ *            rows:[{week,id,day,moved,done,spent,prev}], generals:[{id,on,months,last}],
+ *            supplies:[{id,name,unit,stock|null,min,kind,per}], rooms:[…] (от прежней версии, хранится как есть) }
  *
  * CleanLogic.create({ id, now, today }):
- *   id()    — новый ID (8 символов); now() — 'yyyy-MM-dd HH:mm'; today() — 'yyyy-MM-dd'.
- *   .emptyData()                  — пустой модуль с типовыми расходниками (остаток не указан).
- *   .normalize(data)              — приводит любые данные к схеме (идемпотентно, ничего не теряет).
- *   .state(data)                  — вычисленный план недели и всё для экрана (план НЕ хранится).
- *   .apply(имя, data, [аргументы]) — { data, notice }. Исходное не меняется. Ошибка = Error по-русски.
+ *   id() — новый ID (8 символов); now() — 'yyyy-MM-dd HH:mm'; today() — 'yyyy-MM-dd'.
+ *   .emptyData() · .normalize(data) · .state(data) · .apply(имя, data, [аргументы]) → { data, notice }
+ * План недели НЕ хранится: он считается заново из выбранных дел, настроек и «зерна» недели.
  * Кухню модуль не затрагивает: ни её данных, ни её логики.
  */
 (function (root, factory) {
@@ -23,9 +26,9 @@
 'use strict';
 
 const UNITS = ['КГ', 'Г', 'Л', 'МЛ', 'ШТ'];
-const ROOM_TYPES = { bedroom: 'Спальня', living: 'Гостиная', kids: 'Детская', office: 'Кабинет' };
-const DEF_CLEAN = { limit: 60, rest: [7], kitchen: true, hall: true, split: true, remind: true, ready: false };
-const MAX_ROOMS = 8;
+const MODES = ['themes', 'mix'];
+const DEF_CLEAN = { mode: 'themes', rest: [6], remind: true, ready: false };
+const MINUTES = [10, 15, 20, 25, 30, 45, 60];
 /** Типовые расходники: [название, ед., вид уборки, расход за раз]. */
 const CLEAN_SUPPLIES = [
   ['Средство для полов', 'МЛ', 'floor', 40],
@@ -34,18 +37,31 @@ const CLEAN_SUPPLIES = [
   ['Средство для туалета', 'МЛ', 'wc', 50],
   ['Спрей от пыли', 'МЛ', 'dust', 15]
 ];
-/** Задачи по типам помещений. times — сколько раз в неделю, heavy — тяжёлая (не ставим две в один день). */
-const CLEAN_TPL = {
-  bedroom: [{ k: 'floor', sub: 'Пылесос, затем влажные полы, протереть пыль', min: 15 }],
-  living:  [{ k: 'floor', sub: 'Пылесос, затем влажные полы', min: 15 }, { k: 'dust', sub: 'Поверхности, техника, подоконник', min: 10 }],
-  kids:    [{ k: 'floor', sub: 'Игрушки на места, пылесос, полы', min: 15, times: 2 }],
-  office:  [{ k: 'floor', sub: 'Пылесос, полы, протереть стол', min: 10 }],
-  kitchen: [{ k: 'kitchen', sub: 'Плита, столешницы, раковина', min: 15, times: 2 }, { k: 'floor', sub: 'Подмести и протереть пол', min: 10 }],
-  hall:    [{ k: 'floor', sub: 'Пылесос, влажный пол, обувь', min: 10 }],
-  bath:    [{ k: 'bath', part: 'Основная', sub: 'Ванна, раковина, плитка, пол', min: 30, heavy: true }, { k: 'bath', part: 'Лёгкая', sub: 'Раковина, зеркало, пол', min: 15 }],
-  wc:      [{ k: 'wc', part: 'Основная', sub: 'Унитаз, пол, стены, дезинфекция', min: 20, heavy: true }, { k: 'wc', part: 'Лёгкая', sub: 'Унитаз, раковина, пол', min: 10 }],
-  bathwc:  [{ k: 'bath', part: 'Основная', sub: 'Ванна, раковина, унитаз, пол', min: 40, heavy: true }, { k: 'bath', part: 'Лёгкая', sub: 'Раковина, унитаз, зеркало', min: 20 }]
-};
+/** Зоны списка дел: [id, эмодзи, название]. */
+const ZONES = [['rooms', '🛋️', 'Комнаты'], ['kitchen', '🍳', 'Кухня'], ['bath', '🛁', 'Ванная и туалет'], ['laundry', '👕', 'Стирка и вещи'], ['other', '🏠', 'Прочее']];
+/** Список дел: [id, зона, эмодзи, название, что входит, минут, раз в неделю, день-тема (0 — любой), выбрано сразу, расходник]. */
+const CATALOG = [
+  ['vac', 'rooms', '🧹', 'Пылесос', 'Все комнаты и ковры', 30, 1, 2, 1, ''],
+  ['dust', 'rooms', '🪶', 'Протереть пыль', 'Полки, техника, подоконники', 20, 1, 2, 1, 'dust'],
+  ['floor', 'rooms', '🧽', 'Помыть полы', 'Влажная уборка во всех комнатах', 30, 1, 2, 1, 'floor'],
+  ['bed', 'rooms', '🛏️', 'Сменить постельное', 'Снять, застелить свежее', 15, 1, 0, 0, ''],
+  ['tidy', 'rooms', '🧺', 'Разобрать вещи', 'Всё по местам', 15, 1, 0, 1, ''],
+  ['stove', 'kitchen', '🔥', 'Плита (газ)', 'Решётки, конфорки, ручки', 30, 1, 3, 1, 'kitchen'],
+  ['cab', 'kitchen', '🗄️', 'Шкафы и полки', 'Фасады, полки, ручки', 30, 1, 3, 1, 'kitchen'],
+  ['counter', 'kitchen', '🧴', 'Столешницы и раковина', 'Протереть, отмыть раковину', 15, 1, 0, 1, ''],
+  ['fridge', 'kitchen', '🧊', 'Холодильник', 'Полки внутри, выбросить лишнее', 30, 1, 0, 0, ''],
+  ['shower', 'bath', '🚿', 'Душевая / ванна', 'Стенки, кран, слив, пол', 30, 1, 4, 1, 'bath'],
+  ['wc', 'bath', '🚽', 'Туалет', 'Унитаз, пол, дезинфекция', 15, 1, 4, 1, 'wc'],
+  ['mirror', 'bath', '🪞', 'Раковина и зеркало', 'Отмыть налёт, протереть', 10, 1, 0, 1, ''],
+  ['wash', 'laundry', '🫧', 'Стирка', 'Загрузить, развесить', 30, 1, 1, 1, ''],
+  ['iron', 'laundry', '👔', 'Глажка', 'Погладить и разложить', 25, 1, 7, 1, ''],
+  ['hall', 'other', '👟', 'Коридор и обувь', 'Пол, обувь, зеркало', 15, 1, 0, 1, ''],
+  ['glass', 'other', '🪟', 'Стёкла и зеркала', 'Двери, зеркала, стекло', 20, 1, 0, 0, ''],
+  ['plants', 'other', '🪴', 'Полить цветы', 'Все цветы в доме', 10, 1, 0, 1, ''],
+  ['trash', 'other', '🗑️', 'Мусор и ведро', 'Вынести, помыть ведро', 10, 1, 0, 0, '']
+].map(a => ({ id: a[0], zone: a[1], emo: a[2], name: a[3], sub: a[4], min: a[5], times: a[6], day: a[7], on: !!a[8], k: a[9] }));
+/** Темы дней (режим «По дням-темам»). */
+const THEMES = { 1: ['👕', 'Стирка'], 2: ['🛋️', 'Комнаты: сухая и влажная уборка'], 3: ['🍳', 'Кухня'], 4: ['🚿', 'Ванная и туалет'], 5: ['✨', 'Мелочи по дому'], 6: ['🌿', 'Выходной'], 7: ['👔', 'Глажка'] };
 /** Генеральные: [id, название, описание, минут, раз в N месяцев]. */
 const CLEAN_GEN = [
   ['g_win', 'Окна', 'Помыть стёкла и рамы, подоконники', 40, 3],
@@ -74,80 +90,85 @@ const fmtDate = ms => { const d = new Date(ms); return d.getUTCFullYear() + '-' 
 /** 1 = Пн … 7 = Вс */
 const dayIdxOf = s => ((new Date(utc(s)).getUTCDay() + 6) % 7) + 1;
 const mondayOf = s => fmtDate(utc(s) - (dayIdxOf(s) - 1) * 86400000);
-const fmtQ = (x, u) => {
-  const n = Math.round(x * 100) / 100;
-  return String(n).replace('.', ',') + ' ' + String(u || '').toLowerCase();
-};
 const clone = o => JSON.parse(JSON.stringify(o));
+
+/** Случайные числа с «зерном»: одна и та же неделя и то же зерно — одна и та же раскладка. */
+function rng(text) {
+  let a = 2166136261;
+  for (let i = 0; i < text.length; i++) { a ^= text.charCodeAt(i); a = Math.imul(a, 16777619); }
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function cleanSettings(o) {
   o = o && typeof o === 'object' ? o : {};
-  const s = Object.assign({}, DEF_CLEAN, o);
-  s.limit = Math.min(180, Math.max(20, Math.round(Number(s.limit)) || 60));
-  s.rest = (Array.isArray(s.rest) ? s.rest : []).map(Number).filter((d, i, a) => d >= 1 && d <= 7 && a.indexOf(d) === i).sort();
-  if (s.rest.length >= 7) s.rest = [7];
-  ['kitchen', 'hall', 'split', 'remind', 'ready'].forEach(k => { s[k] = !!s[k]; });
+  const s = { mode: MODES.indexOf(o.mode) >= 0 ? o.mode : DEF_CLEAN.mode, rest: o.rest, remind: o.remind === undefined ? true : !!o.remind, ready: !!o.ready };
+  s.rest = (Array.isArray(s.rest) ? s.rest : DEF_CLEAN.rest).map(Number).filter((d, i, a) => d >= 1 && d <= 7 && a.indexOf(d) === i).sort();
+  if (s.rest.length >= 7) s.rest = [6];
   return s;
 }
 
 function settingsPatch(p) {
   const o = {};
   if (!p) return o;
-  if (p.limit !== undefined) o.limit = p.limit;
+  if (p.mode !== undefined) o.mode = p.mode;
   if (p.rest !== undefined) o.rest = p.rest;
-  ['kitchen', 'hall', 'split', 'remind'].forEach(k => { if (p[k] !== undefined) o[k] = !!p[k]; });
+  if (p.remind !== undefined) o.remind = !!p.remind;
   return o;
 }
 
-/** Список недельных задач (без дней). */
+function pickNorm(p, base) {
+  const min = Math.round(Number(p.min));
+  const times = Math.round(Number(p.times));
+  const day = Math.round(Number(p.day));
+  return {
+    id: base.id,
+    on: p.on === undefined ? base.on : !!p.on,
+    min: min >= 5 && min <= 180 ? min : base.min,
+    times: times >= 1 && times <= 3 ? times : base.times,
+    day: day >= 0 && day <= 7 && p.day !== undefined && p.day !== null && p.day !== '' ? day : base.day
+  };
+}
+
+/** Недельные дела из выбранных (без дней). fixed — день-тема (только в режиме «По дням-темам»). */
 function cleanTasks(c) {
   const s = c.settings, list = [];
-  const rooms = c.rooms.map(r => ({ id: r.id, name: r.name, tpl: r.type }));
-  if (s.kitchen) rooms.push({ id: 'kitchen', name: 'Кухня', tpl: 'kitchen' });
-  if (s.hall) rooms.push({ id: 'hall', name: 'Коридор', tpl: 'hall' });
-  if (s.split) { rooms.push({ id: 'bath', name: 'Ванная', tpl: 'bath' }); rooms.push({ id: 'wc', name: 'Туалет', tpl: 'wc' }); }
-  else rooms.push({ id: 'bathwc', name: 'Санузел', tpl: 'bathwc' });
-  rooms.forEach(r => {
-    CLEAN_TPL[r.tpl].forEach((t, ti) => {
-      const n = t.times || 1;
-      for (let i = 0; i < n; i++) {
-        list.push({
-          id: r.id + '.' + ti + '.' + (i + 1), group: r.id + '.' + ti, room: r.name,
-          title: r.name + (t.part ? ' · ' + t.part : (t.k === 'dust' ? ' · пыль' : '')), sub: t.sub,
-          k: t.k, min: t.min, heavy: !!t.heavy, gen: false
-        });
-      }
-    });
+  c.picks.filter(p => p.on).forEach(p => {
+    const t = CATALOG.find(x => x.id === p.id);
+    for (let i = 1; i <= p.times; i++) {
+      list.push({ id: p.id + '.' + i, group: p.id, zone: t.zone, emo: t.emo, title: t.name, sub: t.sub, k: t.k, min: p.min,
+        fixed: s.mode === 'themes' && i === 1 && p.day && s.rest.indexOf(p.day) < 0 ? p.day : 0, gen: false });
+    }
   });
   return list;
 }
 
-/** Раскладка по дням. pins: {taskId: day} — сделанные и перенесённые остаются где стоят. */
-function cleanSchedule(tasks, days, limit, pins) {
-  const load = {}, heavyOn = {}, placed = {}, byGroup = {};
+/**
+ * Раскладка: закреплённые (сделанные/перенесённые) стоят где стоят; дела со своим днём — в свой день;
+ * остальные — случайно по рабочим дням, поровну по времени. Повтор того же дела в соседний день — штраф.
+ */
+function cleanSchedule(tasks, days, pins, rand) {
+  const load = {}, placed = {}, byGroup = {};
   days.forEach(d => { load[d] = 0; });
-  const order = tasks.slice().sort((a, b) => (b.heavy - a.heavy) || (b.min - a.min) || (a.id < b.id ? -1 : 1));
-  order.forEach(t => {
-    let best = null, bestCost = Infinity;
-    const pin = pins[t.id];
-    const cand = pin ? [pin] : days;
-    cand.forEach(d => {
-      let cost = (load[d] || 0);
-      (byGroup[t.group] || []).forEach(o => { if (placed[o] === d) cost += 40; });
-      if (t.room) tasks.forEach(o => { if (o !== t && o.room === t.room && placed[o.id] === d) cost += 40; });
-      if (t.heavy) {
-        if (heavyOn[d]) cost += 1000;
-        if (heavyOn[d - 1] || heavyOn[d + 1]) cost += 60;
-      }
-      const over = (load[d] || 0) + t.min - limit;
-      if (over > 0) cost += 500 + 10 * over;
-      (byGroup[t.group] || []).forEach(o => { if (Math.abs(placed[o] - d) < 3) cost += 300; });
+  const put = (t, d) => { placed[t.id] = d; load[d] = (load[d] || 0) + t.min; (byGroup[t.group] = byGroup[t.group] || []).push(d); };
+  tasks.filter(t => pins[t.id]).forEach(t => put(t, pins[t.id]));
+  tasks.filter(t => !pins[t.id] && t.fixed).forEach(t => put(t, t.fixed));
+  const free = tasks.filter(t => !pins[t.id] && !t.fixed);
+  for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const x = free[i]; free[i] = free[j]; free[j] = x; }
+  free.sort((a, b) => b.min - a.min);   // крупные первыми — так дни выходят ровнее; равные — в случайном порядке
+  free.forEach(t => {
+    let best = days[0], bestCost = Infinity;
+    days.forEach(d => {
+      let cost = load[d] || 0;
+      (byGroup[t.group] || []).forEach(o => { if (o === d) cost += 1000; else if (Math.abs(o - d) < 2) cost += 300; });
+      cost += rand() * 10;
       if (cost < bestCost) { bestCost = cost; best = d; }
     });
-    placed[t.id] = best;
-    load[best] = (load[best] || 0) + t.min;
-    if (t.heavy) heavyOn[best] = true;
-    (byGroup[t.group] = byGroup[t.group] || []).push(t.id);
+    put(t, best);
   });
   return placed;
 }
@@ -157,7 +178,7 @@ function create(env) {
 
   function emptyData() {
     return normalize({
-      settings: DEF_CLEAN, rooms: [], rows: [], generals: [],
+      settings: DEF_CLEAN, picks: null, rows: [], generals: [], seeds: {},
       supplies: CLEAN_SUPPLIES.map(x => ({ id: newId(), name: x[0], unit: x[1], stock: null, min: x[3] * 5, kind: x[2], per: x[3] }))
     });
   }
@@ -165,10 +186,14 @@ function create(env) {
   /** Приведение к схеме. Идемпотентно; неизвестные поля отбрасываются, известные не теряются. */
   function normalize(raw) {
     raw = raw && typeof raw === 'object' ? raw : {};
+    const hasPicks = Array.isArray(raw.picks);
     const settings = cleanSettings(raw.settings);
-    const rooms = (Array.isArray(raw.rooms) ? raw.rooms : []).filter(r => r && r.id).slice(0, MAX_ROOMS).map(r => ({
-      id: String(r.id), name: str(r.name).trim() || 'Комната', type: ROOM_TYPES[String(r.type)] ? String(r.type) : 'bedroom'
-    }));
+    // прежняя версия (комнаты) считалась «готовой» без списка дел — покажем выбор дел один раз
+    if (!hasPicks) settings.ready = false;
+    const given = {};
+    (hasPicks ? raw.picks : []).forEach(p => { if (p && p.id) given[String(p.id)] = p; });
+    const picks = CATALOG.map(t => pickNorm(given[t.id] || {}, t));
+    const rooms = (Array.isArray(raw.rooms) ? raw.rooms : []).filter(r => r && r.id).map(r => ({ id: String(r.id), name: str(r.name), type: str(r.type) }));
     const rows = (Array.isArray(raw.rows) ? raw.rows : []).filter(r => r && r.week && r.id).map(r => ({
       week: dateOnly(r.week), id: String(r.id), day: Number(r.day) || 0,
       moved: r.moved === true || r.moved === 'TRUE', done: str(r.done), spent: str(r.spent), prev: dateOnly(r.prev)
@@ -186,13 +211,19 @@ function create(env) {
       stock: r.stock === '' || r.stock == null ? null : (Number(r.stock) || 0), min: Number(r.min) || 0,
       kind: KINDS.indexOf(String(r.kind || '')) >= 0 ? String(r.kind || '') : '', per: Number(r.per) || 0
     }));
-    return { settings, rooms, rows, generals, supplies };
+    const seeds = {};
+    const rs = raw.seeds && typeof raw.seeds === 'object' ? raw.seeds : {};
+    Object.keys(rs).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort().slice(-8).forEach(k => { seeds[k] = Math.max(0, Math.round(Number(rs[k])) || 0); });
+    const out = { settings, picks, seeds, rows, generals, supplies };
+    if (rooms.length) out.rooms = rooms;
+    return out;
   }
 
   function state(raw) {
     const c = normalize(raw);
     const s = c.settings, todayS = todayFn(), week = mondayOf(todayS), today = dayIdxOf(todayS);
-    const out = { ready: s.ready, settings: s, rooms: c.rooms, week, today, todayDate: todayS, days: [], tasks: [], general: [], supplies: [], low: [], quick: [], totalMin: 0, doneMin: 0, roomTypes: ROOM_TYPES };
+    const out = { ready: s.ready, settings: s, picks: c.picks, catalog: CATALOG, zones: ZONES, themes: THEMES, week, today, todayDate: todayS,
+      days: [], tasks: [], general: [], supplies: [], low: [], quick: [], totalMin: 0, doneMin: 0 };
     const rowOf = {};
     c.rows.filter(r => r.week === week).forEach(r => { rowOf[r.id] = r; });
     let days = [1, 2, 3, 4, 5, 6, 7].filter(d => s.rest.indexOf(d) < 0);
@@ -200,7 +231,6 @@ function create(env) {
     const tasks = cleanTasks(c);
 
     // Генеральная недели: сделанная на этой неделе остаётся; иначе — самая просроченная из «пора».
-    // Она участвует в раскладке наравне с остальными, чтобы в её день осталось место.
     const gens = c.generals.map(g => {
       const meta = CLEAN_GEN.find(x => x[0] === g.id);
       const since = g.last ? daysBetween(g.last, todayS) : null;
@@ -212,13 +242,13 @@ function create(env) {
     if (!pick) pick = gens.filter(g => g.due).sort((a, b) => b.over - a.over)[0] || null;
     if (pick) {
       pick.inPlan = true;
-      tasks.push({ id: 'g:' + pick.id, group: 'g:' + pick.id, room: 'Генеральная', title: pick.name, sub: pick.sub, k: 'general', min: pick.min, heavy: false, gen: true });
+      tasks.push({ id: 'g:' + pick.id, group: 'g:' + pick.id, zone: 'general', emo: '⭐', title: pick.name, sub: pick.sub, k: 'general', min: pick.min, fixed: 0, gen: true });
     }
 
     const pins = {};
     tasks.forEach(t => { const r = rowOf[t.id]; if (r && r.day) pins[t.id] = r.day; });
-    const placed = cleanSchedule(tasks, days, s.limit, pins);
-    tasks.forEach(t => { t.day = placed[t.id]; });
+    const placed = cleanSchedule(tasks, days, pins, rng(week + ':' + (c.seeds[week] || 0)));
+    tasks.forEach(t => { t.day = placed[t.id]; t.rnd = !t.fixed; });
 
     tasks.forEach(t => {
       const r = rowOf[t.id];
@@ -228,7 +258,7 @@ function create(env) {
       out.totalMin += t.min;
       if (t.done) out.doneMin += t.min;
     });
-    tasks.sort((a, b) => (a.day - b.day) || (b.heavy - a.heavy) || (b.min - a.min) || (a.id < b.id ? -1 : 1));
+    tasks.sort((a, b) => (a.day - b.day) || (!!a.rnd - !!b.rnd) || (b.min - a.min) || (a.id < b.id ? -1 : 1));
     out.tasks = tasks;
     [1, 2, 3, 4, 5, 6, 7].forEach(d => {
       const list = tasks.filter(t => t.day === d);
@@ -237,10 +267,10 @@ function create(env) {
     out.general = gens.map(g => ({ id: g.id, name: g.name, sub: g.sub, min: g.min, months: g.months, on: g.on, last: g.last, since: g.since, due: g.due, inPlan: g.inPlan, done: g.doneNow }));
     out.supplies = c.supplies;
     out.low = c.supplies.filter(x => x.stock != null && x.stock <= x.min);
-    // «Быстрая уборка на 15 минут»: самые лёгкие невыполненные задачи (сначала сегодняшние и просроченные)
+    // «Быстрая уборка на 15 минут»: самые лёгкие невыполненные дела (сначала сегодняшние и просроченные)
     let left = 15;
-    tasks.filter(t => !t.done && !t.gen && !t.heavy && t.day <= today).concat(tasks.filter(t => !t.done && !t.gen && !t.heavy && t.day > today))
-      .sort((a, b) => (a.day > today) - (b.day > today) || a.min - b.min).forEach(t => {
+    tasks.filter(t => !t.done && !t.gen)
+      .sort((a, b) => (a.day > today) - (b.day > today) || a.min - b.min || (a.id < b.id ? -1 : 1)).forEach(t => {
         if (t.min <= left) { out.quick.push(t.id); left -= t.min; }
       });
     return out;
@@ -285,7 +315,7 @@ function create(env) {
         } else {
           const spent = [];
           c.supplies.forEach(sp => {
-            if (sp.kind === t.k && sp.per > 0 && sp.stock != null) {
+            if (t.k && sp.kind === t.k && sp.per > 0 && sp.stock != null) {
               const q = Math.min(sp.stock, sp.per);
               sp.stock = r6(sp.stock - q);
               if (q > 0) spent.push(sp.id + ':' + q);
@@ -325,19 +355,32 @@ function create(env) {
       r.day = days[0]; r.moved = true;
     },
 
-    /** Комнаты и наборы: rooms [{id?, name, type}]; settings — необязательно. Переносы текущей недели сбрасываются. */
-    saveCleanRooms(c, rooms, settings) {
-      const a = Array.isArray(rooms) ? rooms : [];
-      if (a.length > MAX_ROOMS) throw new Error('Комнат может быть не больше ' + MAX_ROOMS + '.');
-      const used = {};
-      c.rooms = a.map((r, i) => {
-        let id = String(r.id || '').trim();
-        if (!id || used[id]) id = newId();
-        used[id] = 1;
-        const name = String(r.name || '').trim().slice(0, 40) || ('Комната ' + (i + 1));
-        return { id, name, type: ROOM_TYPES[r.type] ? r.type : 'bedroom' };
-      });
+    /** «🎲 Перемешать»: другая случайная раскладка этой недели. Сделанное остаётся на месте. */
+    cleanShuffle(c) {
+      const week = mondayOf(todayFn());
+      c.seeds[week] = (c.seeds[week] || 0) + 1;
+      resetMoves(c, week);
+    },
+
+    /** Первый выбор дел и сохранение списка: picks [{id, on, min?, times?, day?}], settings {mode, rest, remind}. */
+    saveCleanPicks(c, picks, settings) {
+      const given = {};
+      (Array.isArray(picks) ? picks : []).forEach(p => { if (p && p.id) given[String(p.id)] = p; });
+      const next = CATALOG.map(t => pickNorm(Object.assign({}, c.picks.find(p => p.id === t.id) || {}, given[t.id] || {}), t));
+      if (!next.some(p => p.on)) throw new Error('Отметьте хотя бы одно дело.');
+      c.picks = next;
       c.settings = cleanSettings(Object.assign({}, c.settings, settingsPatch(settings), { ready: true }));
+      resetMoves(c, mondayOf(todayFn()));
+    },
+
+    /** Одно дело из шторки: {id, on?, min?, times?, day?}. */
+    savePick(c, p) {
+      const base = CATALOG.find(t => t.id === (p && p.id));
+      if (!base) throw new Error('Такого дела нет в списке.');
+      const i = c.picks.findIndex(x => x.id === base.id);
+      const next = pickNorm(Object.assign({}, c.picks[i], p), base);
+      if (!next.on && !c.picks.some(x => x.on && x.id !== base.id)) throw new Error('Отметьте хотя бы одно дело.');
+      c.picks[i] = next;
       resetMoves(c, mondayOf(todayFn()));
     },
 
@@ -397,8 +440,8 @@ function create(env) {
     return { data: normalize(c), notice: notice || '' };
   }
 
-  return { emptyData, normalize, state, apply, actions: Object.keys(A), fmtQ };
+  return { emptyData, normalize, state, apply, actions: Object.keys(A) };
 }
 
-return { create, ROOM_TYPES, DEF_CLEAN, MAX_ROOMS, CLEAN_SUPPLIES, CLEAN_TPL, CLEAN_GEN, mondayOf, dayIdxOf, daysBetween };
+return { create, DEF_CLEAN, CLEAN_SUPPLIES, CATALOG, ZONES, THEMES, MINUTES, CLEAN_GEN, mondayOf, dayIdxOf, daysBetween };
 });
