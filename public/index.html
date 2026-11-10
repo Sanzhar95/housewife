@@ -21,6 +21,8 @@
 <script src="api.js"></script>
 <script src="xlsx-export.js"></script>
 <script src="import-dishes.js"></script>
+<script src="clean-logic.js"></script>
+<script src="clean-store.js"></script>
 <style>
 :root{
   color-scheme:light;
@@ -400,6 +402,7 @@ details.hs[open]>summary{color:var(--accent-deep)}
 .keys b{font-size:20px;text-align:center;min-width:34px}
 
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:max-content;max-width:min(560px,calc(100vw - 24px));background:var(--ink);color:#fff;padding:13px 20px;border-radius:18px;white-space:pre-line;z-index:90;box-shadow:0 10px 34px rgba(42,35,56,.35);font-weight:600}
+#toast{pointer-events:none}
 #toast.bad{background:var(--bad)}
 #toast.good{background:var(--ok)}
 .fab{display:none}
@@ -481,6 +484,54 @@ details.hs[open]>summary{color:var(--accent-deep)}
   .dlg-actions .btn.primary{flex:1;min-height:50px;white-space:nowrap}
   .dlg-actions .btn.ghost{min-height:50px}
 }
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface-2);border-radius:99px;padding:3px;margin-bottom:8px}
+.mods button{border:0;background:transparent;border-radius:99px;min-height:44px;font-weight:800;color:var(--muted);cursor:pointer;font-size:16px}
+.mods button[aria-selected="true"]{background:var(--surface);color:var(--accent-deep);box-shadow:var(--shadow)}
+.cprog{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:8px 0 16px}
+.cprog i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+.chart{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:18px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 10px 6px}
+.ccol{border:2px solid transparent;background:transparent;border-radius:14px;padding:0 0 2px;display:flex;flex-direction:column;cursor:pointer;min-width:0}
+.ccol.sel{border-color:var(--accent);background:var(--accent-soft)}
+.cstack{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;padding:0 4px}
+.cblk{display:block;border-radius:6px;box-shadow:inset 0 0 0 1.5px rgba(42,35,56,.28)}
+.cblk.done{opacity:.35}
+.clab{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:14px;line-height:1.2}
+.clab small{font-size:11px;color:var(--muted);font-weight:700}
+.ccol.today .clab b{color:var(--accent-deep)}
+.climit{position:absolute;left:10px;right:10px;border-top:2px dashed var(--bad);pointer-events:none;z-index:2}
+.climit i{position:absolute;right:0;top:-19px;font-style:normal;font-size:11px;font-weight:800;color:var(--bad);background:var(--surface);padding:0 4px;border-radius:6px}
+.cday-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.cday-head h3{font-size:19px}
+.ctask{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px 12px;margin-bottom:10px}
+.ctask.done{opacity:.65}
+.ct-ico{width:44px;height:44px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;font-size:24px}
+.ct-main{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ct-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.ct-act{grid-column:1/-1;display:flex;gap:8px}
+.ct-act .btn.primary{flex:1;min-height:50px;font-size:17px}
+.ct-act .btn.ghost{min-height:50px}
+.cquick{width:100%;min-height:54px;font-size:17px;margin:4px 0 16px;background:var(--warn-soft);color:var(--warn)}
+.cbox{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px}
+.cbox .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cbox .row.sp{justify-content:space-between}
+.cbox .fchip{white-space:normal;max-width:100%;text-align:left;line-height:1.25}
+.cnt{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.cnt button{border:2px solid var(--line);background:var(--surface);border-radius:16px;min-height:54px;font-size:22px;font-weight:800;cursor:pointer}
+.cnt button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) 118px 44px;gap:8px;align-items:center;margin-bottom:8px}
+.rrow select{padding:11px 8px}
+.chead{background:var(--accent-soft);border-radius:28px;padding:20px;margin-bottom:16px}
+.chead h2{margin:4px 0 6px}
+.lowbar{background:var(--bad-soft);color:var(--bad);border-radius:var(--radius);padding:12px 14px;font-weight:700;margin-bottom:12px}
+.sup-bar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.sup-bar i{display:block;height:100%;background:var(--ok)}
+.sup-bar.low i{background:var(--bad)}
+.cbanner{background:var(--mint-soft);color:var(--ok);border-bottom:1px solid var(--line);cursor:pointer}
+.cbanner .wrap{display:flex;align-items:center;gap:10px;min-height:44px;padding-top:4px;padding-bottom:4px}
+.cbanner .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.cbanner .btn.sm{min-height:34px}
+@media (max-width:700px){ .brand{min-width:0} .clab{font-size:13px} .mods{margin-bottom:4px} .mods button{min-height:42px;font-size:15px} }
+@media (prefers-reduced-motion:reduce){ .cprog i{transition:none} }
 @media (max-width:359px){
   .stat span.l{font-size:11px}
   .actions-row{flex-wrap:wrap;overflow-x:visible}
@@ -493,20 +544,31 @@ details.hs[open]>summary{color:var(--accent-deep)}
 <header class="top">
   <div class="wrap">
     <div class="top-row">
-      <div class="brand"><span class="logo">🥘</span> Домашняя кухня <span class="sync" id="sync" hidden>сохраняется…</span></div>
+      <div class="brand"><span class="logo" id="brandLogo">🥘</span> <span id="brandName">Домашняя кухня</span> <span class="sync" id="sync" hidden>сохраняется…</span></div>
       <button class="hbtn" id="btnHelp" aria-label="Помощь">❓<span class="lbl">Помощь</span></button>
       <button class="hbtn" id="btnLog" aria-label="Журнал">📒<span class="lbl">Журнал</span></button>
       <button class="hbtn" id="btnNotify" aria-label="Настройки">⚙️<span class="lbl">Настройки</span></button>
     </div>
-    <nav>
+    <div class="mods" role="tablist" aria-label="Раздел">
+      <button role="tab" id="modK" data-m="kitchen">🍲 Кухня</button>
+      <button role="tab" id="modC" data-m="clean">🧽 Уборка</button>
+    </div>
+    <nav id="navKitchen">
       <button class="tab" data-t="week"><span class="ico">🗓️</span><span>Меню</span></button>
       <button class="tab" data-t="stock"><span class="ico">🧺</span><span>Склад</span></button>
       <button class="tab" data-t="dishes"><span class="ico">🍲</span><span>Блюда</span></button>
       <button class="tab" data-t="prices"><span class="ico">💰</span><span>Цены</span></button>
     </nav>
+    <nav id="navClean" hidden>
+      <button class="tab" data-c="week"><span class="ico">🗓️</span><span>Неделя</span></button>
+      <button class="tab" data-c="general"><span class="ico">⭐</span><span>Генеральные</span></button>
+      <button class="tab" data-c="supplies"><span class="ico">🧴</span><span>Расходники</span></button>
+      <button class="tab" data-c="rooms"><span class="ico">🚪</span><span>Комнаты</span></button>
+    </nav>
   </div>
 </header>
 <div id="banner" hidden></div>
+<div id="cbanner" class="cbanner" hidden></div>
 <main><div class="wrap" id="view"><div class="empty"><span class="big">🍳</span>Загружаю вашу кухню…</div></div></main>
 
 <dialog id="dlg"><div id="dlgBox"></div></dialog>
@@ -956,7 +1018,7 @@ function exportShopping() {
 function renderBanner() {
   const b = $('#banner');
   const low = S.products.filter(isLow);
-  if (!low.length) { b.hidden = true; return; }
+  if (!low.length || mod === 'clean') { b.hidden = true; return; }
   const go = () => { tab = 'stock'; stockFilter = 'low'; render(); window.scrollTo(0, 0); };
   const txt = h('span', { class: 'txt' });
   b.replaceChildren(h('div', { class: 'wrap', onclick: go },
@@ -1082,7 +1144,7 @@ async function downloadBackup() {
   } catch (e) { toast(cleanErr(e), 'bad'); }
 }
 $('#btnLog').addEventListener('click', () => { tab = 'log'; if (S) render(); });
-$('#btnHelp').addEventListener('click', () => { tab = 'help'; if (S) { render(); window.scrollTo(0, 0); } });
+$('#btnHelp').addEventListener('click', () => { if (mod === 'clean') ctab = 'help'; else tab = 'help'; if (S) { render(); window.scrollTo(0, 0); } });
 
 /* ───── Меню на неделю: дни × завтрак / обед / ужин ───── */
 function parseDate(s) {
@@ -1999,6 +2061,21 @@ const HELP = [
       '❓ Этот раздел. Он всегда под рукой — кнопка ❓ вверху.'] },
     { tip: 'Ничего заново настраивать не нужно: старые блюда работают как раньше, пока вы не укажете порции и «хватает на».' }] },
 
+  { id: 'clean', ico: '🧽', title: 'Уборка: график на неделю', body: [
+    'Переключатель «🍲 Кухня | 🧽 Уборка» — вверху. Уборка работает отдельно: меню и склад она не трогает.',
+    { ol: [
+      'Первый раз приложение спросит, сколько у вас комнат. Выберите число и поправьте названия — например, «Детская Алины».',
+      'Нажмите «Составить график». Приложение разложит уборку по дням так, чтобы в день выходило не больше часа, а ванная и туалет — самые тяжёлые — не попадали на один день.',
+      'Сделали — нажмите «✓ Готово». Не успели — «Завтра →», дело встанет на следующий рабочий день.',
+      '«⚡ Быстрая уборка на 15 минут» — когда времени мало: подберёт самые лёгкие дела.'] },
+    { ul: [
+      '🧹 Сухая и влажная уборка в комнате — одно дело: пылесос, затем полы.',
+      '⭐ «Генеральные» — окна, холодильник, духовка и другое раз в 1–3 месяца. Не больше одного дела в неделю, в самый свободный день.',
+      '🧴 «Расходники» — впишите, сколько средства дома: после «Готово» оно спишется само, а когда будет заканчиваться, появится подсказка. Учёт можно не вести.',
+      '🔔 На «Кухне» вверху появляется полоска «Уборка: N зад. · M мин», пока на сегодня есть несделанное. Её можно выключить во вкладке «Комнаты».',
+      '🌿 Выходные дни, время в день (30–90 минут) и комнаты меняются во вкладке «Комнаты».'] },
+    { tip: 'Нажали «Готово» по ошибке — откройте день и нажмите «↩️ Отменить»: расходники вернутся на место.' }] },
+
   { id: 'start', ico: '🚀', title: 'Быстрый старт за 5 шагов', body: [
     { ol: [
       '🧺 «Склад» — добавьте продукты, которые есть дома (или загрузите список из Excel). Для каждого можно указать «когда пора докупать».',
@@ -2169,17 +2246,301 @@ function newsCard() {
     h('button', { class: 'icon-act', 'aria-label': 'Скрыть', onclick: close }, '×'));
 }
 
+/* ───── Модуль «Уборка» ───── */
+let mod = 'kitchen';
+try { if (localStorage.getItem('dk_mod') === 'clean') mod = 'clean'; } catch (e) { /* без хранилища — начнём с кухни */ }
+let ctab = 'week';
+let cDay = null;
+let cDraft = null;
+let CS = null;          // вычисленное состояние «Уборки» (план недели и всё для экрана)
+let CERR = '';          // почему «Уборка» не загрузилась
+let CST = null;         // хранилище (clean-store.js)
+const CDAYS = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const CDAYS_FULL = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+const ROOM_LBL = { bedroom: 'Спальня', living: 'Гостиная', kids: 'Детская', office: 'Кабинет' };
+const KIND_EMO = { floor: '🧹', dust: '🪶', kitchen: '🍳', bath: '🛁', wc: '🚽', general: '⭐' };
+const KIND_LBL = { floor: 'Полы', dust: 'Пыль', kitchen: 'Кухня', bath: 'Ванная', wc: 'Туалет', '': 'Не списывать' };
+const KIND_COLOR = { floor: '#b4a8ef', dust: '#dad3f6', kitchen: '#f0c466', bath: '#6cc2a3', wc: '#3fa383', general: '#ee8fa8' };
+const CLEAN_TABS = ['week', 'general', 'supplies', 'rooms'];
+
+const fmtMin = m => m >= 60 ? Math.floor(m / 60) + ' ч' + (m % 60 ? ' ' + (m % 60) + ' мин' : '') : m + ' мин';
+function dateOfDay(C, d) {
+  const p = C.week.split('-').map(Number);
+  const x = new Date(p[0], p[1] - 1, p[2] + d - 1);
+  return x.getDate() + ' ' + MONTHS[x.getMonth()];
+}
+const cTodayLeft = C => C.tasks.filter(t => !t.done && (t.day === C.today || t.late));
+const canLater = (C, t) => !t.done && C.days.some(d => !d.rest && d.day > t.day);
+
+function cleanLoadErr(e) {
+  const m = String((e && e.message) || e);
+  if (/clean_get|clean_save|schema cache|does not exist|Could not find/i.test(m)) return 'Раздел «Уборка» ещё не подключён к базе. Нужно один раз выполнить файл 003_clean.sql в Supabase (SQL Editor).';
+  return cleanErr(e);
+}
+
+/** Загрузить «Уборку». Ошибка не ломает кухню: она показывается только в разделе «Уборка». */
+async function cleanLoad() {
+  if (!CST) return;
+  try { CS = await CST.load(); CERR = ''; } catch (e) {
+    CS = null; CERR = cleanLoadErr(e);
+    if (CERR === 'Войдите заново') { sessionLost(); return; }
+  }
+  if (S) render();
+}
+
+/** Действие в «Уборке»: записать и перерисовать. Возвращает состояние или null (ошибка уже показана). */
+async function cact(name, ...args) {
+  document.body.classList.add('busy');
+  try {
+    const r = await CST.act(name, ...args);
+    CS = r.state;
+    if (r.notice) toast(r.notice);
+    render();
+    return CS;
+  } catch (e) {
+    const m = cleanLoadErr(e);
+    if (m === 'Войдите заново') { sessionLost(); return null; }
+    toast(m, 'bad');
+    return null;
+  } finally {
+    document.body.classList.remove('busy');
+  }
+}
+
+function setMod(m) {
+  mod = m;
+  try { localStorage.setItem('dk_mod', m); } catch (e) { /* ничего */ }
+  window.scrollTo(0, 0);
+  render();
+  if (m === 'clean' && !CS && !CERR) cleanLoad();
+}
+
+function renderClean(v) {
+  const C = CS;
+  if (ctab === 'help') return renderHelp(v);
+  if (!C) {
+    if (CERR) {
+      v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '😕' }), CERR,
+        h('button', { class: 'btn', style: 'margin-top:12px', onclick: () => { CERR = ''; render(); cleanLoad(); } }, 'Повторить')));
+    } else v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🧽' }), 'Загружаю уборку…'));
+    return;
+  }
+  if (!C.ready) return cRoomsEditor(v, C, true);
+  ({ week: cWeek, general: cGeneral, supplies: cSupplies, rooms: (x, c) => cRoomsEditor(x, c, false) })[ctab](v, C);
+}
+
+/** Напоминание на кухне: «🧽 Уборка: N зад. · M мин», если на сегодня есть несделанное. */
+function renderCBanner() {
+  const b = $('#cbanner');
+  const C = CS;
+  const left = C && C.ready && C.settings.remind && mod === 'kitchen' ? cTodayLeft(C) : [];
+  if (!left.length) { b.hidden = true; return; }
+  const go = () => { setMod('clean'); ctab = 'week'; cDay = null; render(); };
+  b.replaceChildren(h('div', { class: 'wrap', onclick: go },
+    h('span', { class: 'txt' }, h('b', { text: '🧽 Уборка: ' }), left.length + ' зад. · ' + left.reduce((a, t) => a + t.min, 0) + ' мин'),
+    h('button', { class: 'btn sm', onclick: e => { e.stopPropagation(); go(); } }, 'Смотреть')));
+  b.hidden = false;
+}
+
+function taskCard(t, C) {
+  const chips = [h('span', { class: 'chip', text: '⏱ ' + t.min + ' мин' })];
+  if (t.heavy) chips.push(h('span', { class: 'chip warn', text: 'Основная' }));
+  if (t.gen) chips.push(h('span', { class: 'chip', text: 'Генеральная' }));
+  if (t.late) chips.push(h('span', { class: 'chip bad', text: 'С ' + CDAYS[t.day] }));
+  if (t.moved && !t.late) chips.push(h('span', { class: 'chip', text: 'Перенесено' }));
+  return h('div', { class: 'ctask' + (t.done ? ' done' : '') },
+    h('div', { class: 'ct-ico', text: KIND_EMO[t.k] || '🧽' }),
+    h('div', { class: 'ct-main' }, h('b', { text: (t.done ? '✓ ' : '') + t.title }), h('span', { class: 'muted small', text: t.sub }), h('span', { class: 'ct-chips' }, chips)),
+    h('div', { class: 'ct-act' },
+      t.done
+        ? h('button', { class: 'btn ghost', onclick: () => cact('cleanUndo', t.id) }, '↩️ Отменить')
+        : [h('button', { class: 'btn primary', onclick: () => cact('cleanDone', t.id) }, '✓ Готово'),
+           canLater(C, t) ? h('button', { class: 'btn ghost', onclick: () => cact('cleanLater', t.id) }, 'Завтра →') : null]));
+}
+
+function cWeek(v, C) {
+  if (cDay == null) cDay = C.today;
+  const T = id => C.tasks.find(t => t.id === id);
+  const maxM = Math.max(C.settings.limit * 1.15, ...C.days.map(d => d.min), 20);
+  const H = 150, PX = H / maxM;
+  const pct = C.totalMin ? Math.round(C.doneMin / C.totalMin * 100) : 0;
+  v.append(h('div', { class: 'chead' },
+    h('span', { class: 'hand', text: 'Уборка' }),
+    h('h2', { text: 'План на неделю' }),
+    h('div', { class: 'muted', text: fmtMin(C.totalMin) + ' всего · не больше ' + C.settings.limit + ' мин в день · сделано ' + pct + '%' }),
+    h('div', { class: 'cprog' }, h('i', { style: 'width:' + pct + '%' }))));
+  if (C.low.length) v.append(h('div', { class: 'lowbar' }, '🧴 Заканчивается: ' + C.low.map(x => x.name).join(', ') + ' ', h('button', { class: 'btn sm', onclick: () => { ctab = 'supplies'; render(); } }, 'Смотреть')));
+
+  const chart = h('div', { class: 'chart', role: 'group', 'aria-label': 'Нагрузка по дням' },
+    h('div', { class: 'climit', style: 'bottom:' + Math.round(46 + 6 + C.settings.limit * PX) + 'px' }, h('i', { text: C.settings.limit + ' мин' })),
+    C.days.map(d => h('button', { class: 'ccol' + (d.day === cDay ? ' sel' : '') + (d.day === C.today ? ' today' : ''), 'aria-label': CDAYS_FULL[d.day] + ', ' + d.min + ' мин', onclick: () => { cDay = d.day; render(); } },
+      h('span', { class: 'cstack', style: 'height:' + H + 'px' }, d.ids.map(id => { const t = T(id); return h('span', { class: 'cblk' + (t.done ? ' done' : ''), style: 'height:' + Math.max(6, Math.round(t.min * PX) - 2) + 'px;background:' + KIND_COLOR[t.k] }); })),
+      h('span', { class: 'clab' }, h('b', { text: CDAYS[d.day] }), h('small', { text: d.rest ? 'отдых' : d.min + ' м' })))));
+  v.append(chart);
+
+  const quick = C.quick.map(T).filter(Boolean);
+  v.append(h('button', { class: 'btn cquick', onclick: () => {
+    if (!quick.length) { toast('Всё лёгкое уже сделано 🎉', 'good'); return; }
+    const sum = quick.reduce((a, t) => a + t.min, 0);
+    modal({
+      title: '⚡ Быстрая уборка',
+      body: h('div', { class: 'form' }, h('p', { class: 'muted', text: 'На ' + sum + ' минут. Самые лёгкие дела из плана:' }),
+        h('ul', {}, quick.map(t => h('li', { text: t.title + ' — ' + t.min + ' мин' })))),
+      okText: '✓ Всё сделала',
+      onOk: async () => { await cact('cleanDone', quick.map(t => t.id)); }
+    });
+  } }, '⚡ Быстрая уборка на 15 минут'));
+
+  const day = C.days[cDay - 1];
+  const list = day.ids.map(T);
+  const isToday = cDay === C.today;
+  const late = isToday ? C.tasks.filter(t => t.late && !t.done && t.day !== cDay) : [];
+  v.append(h('div', { class: 'cday-head' },
+    h('h3', { text: (isToday ? 'Сегодня, ' : '') + CDAYS_FULL[cDay].toLowerCase() + ', ' + dateOfDay(C, cDay) }),
+    day.rest ? null : h('span', { class: 'chip' + (day.min > C.settings.limit ? ' warn' : ''), text: day.min + ' мин' })));
+  if (day.rest && !list.length) v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🌿' }), 'Выходной. Отдыхаем!'));
+  else if (!list.length) v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '✨' }), 'На этот день дел нет.'));
+  list.forEach(t => v.append(taskCard(t, C)));
+  if (late.length) {
+    v.append(h('h3', { text: 'Не успели раньше', style: 'margin:18px 0 10px' }));
+    late.forEach(t => v.append(taskCard(t, C)));
+  }
+}
+
+function cGeneral(v, C) {
+  v.append(h('div', { class: 'chead' }, h('span', { class: 'hand', text: 'Раз в 1–3 месяца' }), h('h2', { text: 'Генеральные дела' }),
+    h('div', { class: 'muted', text: 'Не больше одного дела в неделю — в самый свободный день. Когда придёт срок, оно появится в плане само.' })));
+  C.general.forEach(g => {
+    const state = !g.on ? h('span', { class: 'chip', text: 'Выключено' })
+      : g.done ? h('span', { class: 'chip ok', text: '✓ Сделано на этой неделе' })
+      : g.inPlan ? h('span', { class: 'chip warn', text: 'В плане на этой неделе' })
+      : g.due ? h('span', { class: 'chip warn', text: 'Пора' }) : h('span', { class: 'chip ok', text: 'Всё свежо' });
+    const last = g.last ? 'Делали ' + (g.since === 0 ? 'сегодня' : g.since + ' дн. назад') : 'Ещё не делали';
+    v.append(h('div', { class: 'cbox' },
+      h('div', { class: 'row sp' }, h('b', { text: g.name }), state),
+      h('div', { class: 'muted small', text: g.sub + ' · ' + g.min + ' мин' }),
+      h('div', { class: 'muted small', text: last }),
+      h('div', { class: 'row' }, h('span', { class: 'muted small', text: 'Раз в' }),
+        [1, 2, 3].map(m => h('button', { class: 'fchip' + (g.months === m ? ' on' : ''), onclick: () => cact('saveGeneral', { id: g.id, months: m }) }, m + ' мес.'))),
+      h('div', { class: 'row' },
+        g.on && g.inPlan && !g.done ? h('button', { class: 'btn primary', onclick: () => cact('cleanDone', 'g:' + g.id) }, '✓ Готово') : null,
+        g.on && !g.inPlan ? h('button', { class: 'btn', onclick: () => cact('saveGeneral', { id: g.id, last: tzDate(false) }) }, 'Сделала сегодня') : null,
+        h('button', { class: 'btn ghost', onclick: () => cact('saveGeneral', { id: g.id, on: !g.on }) }, g.on ? 'Выключить' : 'Включить'))));
+  });
+}
+
+function supplyModal(s) {
+  const isNew = !s;
+  s = s || { name: '', unit: 'МЛ', stock: null, min: 0, kind: '', per: 0 };
+  const name = h('input', { type: 'text', value: s.name, placeholder: 'Например, средство для стёкол', maxlength: '60' });
+  const unit = unitSelect(UNITS, s.unit, 'Единица');
+  const stock = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: s.stock == null ? '' : s.stock, placeholder: 'не веду' });
+  const min = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: s.min || '' });
+  const kind = h('select', {}, Object.keys(KIND_LBL).map(k => h('option', { value: k, selected: k === s.kind }, k ? 'На ' + KIND_LBL[k].toLowerCase() : KIND_LBL[k])));
+  const per = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', value: s.per || '' });
+  modal({
+    title: isNew ? 'Новый расходник' : s.name,
+    body: h('div', { class: 'form' }, field('Название', name), field('Единица', unit),
+      field('Сколько осталось', stock, '— пусто: не веду учёт'),
+      field('Пора докупить, когда осталось', min),
+      field('Тратится на', kind), field('Сколько за одну уборку', per, '— спишется само после «Готово»')),
+    extra: isNew ? null : { text: 'Удалить', cls: 'danger', onClick: async () => { if (await confirmBox('Удалить «' + s.name + '»?', 'Удалить')) { $('#dlg').close(); cact('deleteSupply', s.id); } } },
+    onOk: async () => {
+      const st = await cact('saveSupply', { id: s.id, name: name.value, unit: unit.value, stock: stock.value === '' ? '' : toNum(stock.value), min: toNum(min.value) || 0, kind: kind.value, per: toNum(per.value) || 0 });
+      return st ? true : false;
+    }
+  });
+}
+
+function cSupplies(v, C) {
+  v.append(h('div', { class: 'chead' }, h('span', { class: 'hand', text: 'Чтобы не закончилось' }), h('h2', { text: 'Расходники' }),
+    h('div', { class: 'muted', text: 'Впишите, сколько дома. После каждой уборки отметка «Готово» сама спишет средство, а когда оно будет заканчиваться — подскажу.' })));
+  C.supplies.forEach(s => {
+    const tracked = s.stock != null;
+    const low = tracked && s.stock <= s.min;
+    const pct = tracked && s.min > 0 ? Math.min(100, Math.round(s.stock / (s.min * 5) * 100)) : (tracked && s.stock > 0 ? 100 : 0);
+    v.append(h('div', { class: 'cbox' },
+      h('div', { class: 'row sp' }, h('b', { text: s.name }), low ? h('span', { class: 'chip bad', text: 'Пора докупить' }) : null),
+      h('div', { class: 'muted small', text: (tracked ? 'Осталось ' + qtyNice(s.stock, s.unit) : 'Учёт не ведётся') + (s.kind && s.per ? ' · на ' + KIND_LBL[s.kind].toLowerCase() + ' ' + qtyNice(s.per, s.unit) + ' за раз' : '') }),
+      tracked ? h('div', { class: 'sup-bar' + (low ? ' low' : '') }, h('i', { style: 'width:' + pct + '%' })) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn primary', onclick: () => {
+          const q = h('input', { type: 'number', step: 'any', min: '0', inputmode: 'decimal', placeholder: 'Сколько купили' });
+          modal({ title: '＋ Купила: ' + s.name, body: h('div', { class: 'form' }, field('Количество, ' + (UNIT_LBL[s.unit] || s.unit), q)), okText: 'Добавить',
+            onOk: async () => { const n = toNum(q.value); if (!(n > 0)) { toast('Впишите, сколько купили.', 'bad'); return false; } return (await cact('restockSupply', s.id, n)) ? true : false; } });
+        } }, '＋ Купила'),
+        h('button', { class: 'btn', onclick: () => supplyModal(s) }, 'Изменить'))));
+  });
+  v.append(h('button', { class: 'btn wide', onclick: () => supplyModal(null) }, '＋ Добавить расходник'));
+}
+
+function draftFrom(C, first) {
+  const D = { rooms: C.rooms.map(r => ({ id: r.id, name: r.name, type: r.type })), kitchen: C.settings.kitchen, hall: C.settings.hall, split: C.settings.split,
+    limit: C.settings.limit, rest: C.settings.rest.slice(), remind: C.settings.remind };
+  if (!D.rooms.length && first) for (let i = 0; i < 3; i++) D.rooms.push(newRoom(i));
+  return D;
+}
+function newRoom(i) { const type = ['bedroom', 'living', 'kids', 'office'][i] || 'bedroom'; return { name: i < 4 ? ROOM_LBL[type] : 'Комната ' + (i + 1), type }; }
+
+function cRoomsEditor(v, C, first) {
+  if (!cDraft) cDraft = draftFrom(C, first);
+  const D = cDraft;
+  const setCount = n => { while (D.rooms.length < n) D.rooms.push(newRoom(D.rooms.length)); D.rooms.length = n; render(); };
+  const tog = (label, key) => h('button', { type: 'button', class: 'fchip' + (D[key] ? ' on' : ''), 'aria-pressed': D[key] ? 'true' : 'false', onclick: () => { D[key] = !D[key]; render(); } }, (D[key] ? '✓ ' : '') + label);
+  v.append(h('div', { class: 'chead' },
+    h('span', { class: 'hand', text: first ? 'Давайте познакомимся' : 'Ваш дом' }),
+    h('h2', { text: first ? 'Сколько у вас комнат?' : 'Комнаты и график' }),
+    h('div', { class: 'muted', text: first ? 'Не считая кухни, ванной и туалета. Всё остальное я разложу по дням — не больше часа в день.' : 'Изменения вступят в силу сразу — график недели пересоберётся.' })));
+  v.append(h('div', { class: 'cbox' },
+    h('b', { text: 'Количество комнат' }),
+    h('div', { class: 'cnt' }, [1, 2, 3, 4, 5, 6].map(n => h('button', { type: 'button', class: D.rooms.length === n ? 'on' : '', onclick: () => setCount(n) }, String(n)))),
+    D.rooms.map((r, i) => h('div', { class: 'rrow' },
+      h('input', { type: 'text', value: r.name, maxlength: '40', 'aria-label': 'Название комнаты ' + (i + 1), oninput: e => { r.name = e.target.value; } }),
+      h('select', { 'aria-label': 'Тип комнаты', onchange: e => { r.type = e.target.value; } }, Object.keys(ROOM_LBL).map(k => h('option', { value: k, selected: k === r.type }, ROOM_LBL[k]))),
+      h('button', { type: 'button', class: 'icon-act', 'aria-label': 'Убрать комнату', disabled: D.rooms.length <= 1, onclick: () => { D.rooms.splice(i, 1); render(); } }, '✕'))),
+    D.rooms.length < 8 ? h('button', { type: 'button', class: 'btn', onclick: () => { D.rooms.push(newRoom(D.rooms.length)); render(); } }, '＋ Ещё комната') : null));
+  v.append(h('div', { class: 'cbox' }, h('b', { text: 'Что ещё убираем' }),
+    h('div', { class: 'row' }, tog('Кухня', 'kitchen'), tog('Коридор', 'hall'), tog('Ванная и туалет отдельно', 'split')),
+    h('div', { class: 'muted small', text: 'Ванную и туалет разбиваем на «основную» уборку (раз в неделю) и «лёгкую» — так тяжёлый день не бывает два раза подряд.' })));
+  if (!first) {
+    v.append(h('div', { class: 'cbox' }, h('b', { text: 'Сколько времени в день' }),
+      h('div', { class: 'row' }, [30, 45, 60, 90].map(n => h('button', { type: 'button', class: 'fchip' + (D.limit === n ? ' on' : ''), onclick: () => { D.limit = n; render(); } }, n + ' мин'))),
+      h('b', { text: 'Выходные от уборки', style: 'margin-top:6px' }),
+      h('div', { class: 'row' }, [1, 2, 3, 4, 5, 6, 7].map(d => h('button', { type: 'button', class: 'fchip' + (D.rest.indexOf(d) >= 0 ? ' on' : ''), 'aria-pressed': D.rest.indexOf(d) >= 0 ? 'true' : 'false', onclick: () => {
+        const i = D.rest.indexOf(d);
+        if (i >= 0) D.rest.splice(i, 1); else if (D.rest.length >= 6) { toast('Хотя бы один день должен быть рабочим.', 'bad'); return; } else D.rest.push(d);
+        render();
+      } }, CDAYS[d]))),
+      h('button', { type: 'button', class: 'fchip' + (D.remind ? ' on' : ''), style: 'align-self:flex-start;margin-top:6px', onclick: () => { D.remind = !D.remind; render(); } }, (D.remind ? '✓ ' : '') + 'Напоминать об уборке в приложении')));
+  }
+  v.append(h('button', { class: 'btn primary wide', style: 'min-height:54px;font-size:17px', onclick: async () => {
+    const st = await cact('saveCleanRooms', D.rooms, { kitchen: D.kitchen, hall: D.hall, split: D.split, limit: D.limit, rest: D.rest, remind: D.remind });
+    if (st) { cDraft = null; cDay = null; ctab = 'week'; render(); window.scrollTo(0, 0); toast(first ? 'График готов! 🧽' : 'График обновлён.', 'good'); }
+  } }, first ? 'Составить график' : 'Сохранить'));
+}
+
 /* ───── Запуск ───── */
 let enterNext = false, prevDone = null;
 function render() {
+  const clean = mod === 'clean';
   renderBanner();
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
-  $('#btnLog').classList.toggle('on', tab === 'log');
-  $('#btnHelp').classList.toggle('on', tab === 'help');
+  renderCBanner();
+  $('#navKitchen').hidden = clean;
+  $('#navClean').hidden = !clean;
+  $('#brandLogo').textContent = clean ? '🧽' : '🥘';
+  $('#brandName').textContent = clean ? 'Уборка' : 'Домашняя кухня';
+  document.querySelectorAll('.mods button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.m === mod)));
+  document.querySelectorAll('#navKitchen .tab').forEach(b => b.classList.toggle('on', !clean && b.dataset.t === tab));
+  document.querySelectorAll('#navClean .tab').forEach(b => b.classList.toggle('on', clean && b.dataset.c === ctab));
+  const cur = clean ? ctab : tab;
+  $('#btnLog').hidden = clean;
+  $('#btnLog').classList.toggle('on', cur === 'log');
+  $('#btnHelp').classList.toggle('on', cur === 'help');
   const v = $('#view');
   v.replaceChildren();
   v.classList.toggle('enter', enterNext);
   enterNext = false;
+  if (clean) { renderClean(v); return; }
   ({ week: renderWeek, stock: renderStock, dishes: renderDishes, prices: renderPrices, log: renderLog, help: renderHelp })[tab](v);
   // «пружинка» у блюд, которые только что стали приготовленными (не при первой отрисовке и не при смене вкладки)
   const nowDone = new Set((S.plan || []).filter(i => i.done).map(i => i.id));
@@ -2187,7 +2548,12 @@ function render() {
   prevDone = nowDone;
 }
 
-document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.mods button').forEach(b => b.addEventListener('click', () => { if (S && b.dataset.m !== mod) setMod(b.dataset.m); }));
+document.querySelectorAll('#navClean .tab').forEach(b => b.addEventListener('click', () => {
+  ctab = b.dataset.c; cDraft = null;
+  if (S) { enterNext = true; render(); window.scrollTo(0, 0); }
+}));
+document.querySelectorAll('#navKitchen .tab').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.t;
   if (S) { enterNext = true; render(); window.scrollTo(0, 0); }
   touchMenu();
@@ -2271,6 +2637,8 @@ async function startApp() {
   }
   render();
   touchMenu();
+  CS = null; CERR = ''; cDraft = null;
+  cleanLoad();
 }
 
 (async function init() {
@@ -2290,6 +2658,10 @@ async function startApp() {
       today: () => tzDate(false)
     });
     DB.init(client, logic);
+    CST = CleanStore.create({
+      logic: CleanLogic.create({ id: () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + String(Date.now())).replace(/-/g, '').slice(0, 8), now: () => tzDate(true), today: () => tzDate(false) }),
+      rpc: async (name, args) => { const r = await client.rpc(name, args); if (r.error) throw new Error(r.error.message || String(r.error)); return r.data; }
+    });
     window.API = ApiFactory.create({ db: DB, logic, optimistic: () => DB.OPTIMISTIC, exportXlsx: window.exportXlsxLocal });
     const token = Auth.parseJoinHash(location.hash);
     if (token) return renderAuth('join', { token });

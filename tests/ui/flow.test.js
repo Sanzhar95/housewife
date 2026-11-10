@@ -270,7 +270,7 @@ test('меню: геометрия шапки, плашки «Новое», сч
     assert.strictEqual(stats.length, 3);
     stats.forEach(h => assert.ok(h <= 110, `карточка-счётчик ${h}px, нужно ≤ 110`));
     const dtNews = await box(page, '.day-title');
-    assert.ok(dtNews.bottom <= 740, `«Сегодня» с плашкой «Новое» заканчивается на ${dtNews.bottom}px, нужно ≤ 740`);
+    assert.ok(dtNews.bottom <= 750, `«Сегодня» с плашкой «Новое» заканчивается на ${dtNews.bottom}px, нужно ≤ 750`);
     await ctx.close();
 
     // 2) без плашки «Новое»: заголовок «Сегодня» целиком на первом экране
@@ -341,7 +341,7 @@ test('склад, блюда: геометрия и отображение на�
     await page.fill('input[type=search]', '');
     // вкладки «Матрица» больше нет
     assert.strictEqual(await page.locator('nav .tab[data-t=matrix]').count(), 0);
-    assert.strictEqual(await page.locator('nav .tab').count(), 4);
+    assert.strictEqual(await page.locator('#navKitchen .tab').count(), 4);
   } finally { await browser.close(); server.close(); }
   assert.deepStrictEqual(errors, []);
 });
