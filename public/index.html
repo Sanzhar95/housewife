@@ -10,6 +10,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Домашняя кухня</title>
+<!-- Yandex.Metrika counter 114208985: просмотры, цели (ymGoal), Вебвизор. Поля входа скрыты классом ym-disable-keys. -->
+<script>
+  (function(m,e,t,r,i,k,a){
+    m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();
+    for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+  })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=114208985', 'ym');
+  ym(114208985, 'init', { ssr:true, webvisor:true, clickmap:true, referrer:document.referrer, url:location.href, accurateTrackBounce:true, trackLinks:true });
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -721,6 +731,26 @@ function toast(msg, kind) {
   }, kind === 'bad' ? 7000 : 5000);
 }
 
+/* ───── Яндекс Метрика: цели и виртуальные просмотры. Ошибки Метрики никогда не мешают приложению. ───── */
+const YM_ID = 114208985;
+const YM_GOALS = { generateWeek: 'menu_generate', cookItem: 'cook', cookMeal: 'cook', cookDish: 'cook', setLeftover: 'leftover', addLeftover: 'leftover', adjustStock: 'stock_add', saveDish: 'dish_save', cleanDone: 'clean_done' };
+function ymGoal(goal) { try { if (typeof window.ym === 'function') window.ym(YM_ID, 'reachGoal', goal); } catch (e) { /* ничего */ } }
+/** Цель по имени успешного действия. setLeftover(id, false) — «Буду готовить», не цель; cleanDone([..]) — быстрая уборка. */
+function ymAction(fn, args) {
+  if (fn === 'setLeftover' && !args[1]) return;
+  if (fn === 'cleanDone' && Array.isArray(args[0])) return ymGoal('clean_quick');
+  if (YM_GOALS[fn]) ymGoal(YM_GOALS[fn]);
+}
+let ymView = null;
+/** Виртуальный просмотр при смене модуля/вкладки (первый экран уже засчитан самим счётчиком). */
+function ymTrackView(key) {
+  if (key === ymView) return;
+  const first = ymView === null;
+  ymView = key;
+  if (first) return;
+  try { if (typeof window.ym === 'function') window.ym(YM_ID, 'hit', location.pathname + '#' + key, { title: document.title, referer: location.href }); } catch (e) { /* ничего */ }
+}
+
 function call(fn, ...args) {
   if (!window.API || typeof API[fn] !== 'function') return Promise.reject(new Error('Нет такого действия: ' + fn));
   return API[fn](...args);
@@ -731,6 +761,7 @@ async function act(fn, ...args) {
   try {
     const st = await call(fn, ...args);
     S = st;
+    ymAction(fn, args);
     if (st.notice) toast(st.notice);
     render();
     return st;
@@ -1118,7 +1149,7 @@ function friendBox() {
 }
 
 function passwordBox() {
-  const p1 = h('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Новый пароль (от 8 символов)' });
+  const p1 = h('input', { class: 'ym-disable-keys', type: 'password', autocomplete: 'new-password', placeholder: 'Новый пароль (от 8 символов)' });
   modal({
     title: '🔑 Сменить пароль',
     body: h('div', { class: 'form' }, field('Новый пароль', p1)),
@@ -2300,6 +2331,7 @@ async function cact(name, ...args) {
   try {
     const r = await CST.act(name, ...args);
     CS = r.state;
+    ymAction(name, args);
     if (r.notice) toast(r.notice);
     render();
     return CS;
@@ -2598,6 +2630,7 @@ function render() {
   document.querySelectorAll('#navKitchen .tab').forEach(b => b.classList.toggle('on', !clean && b.dataset.t === tab));
   document.querySelectorAll('#navClean .tab').forEach(b => b.classList.toggle('on', clean && b.dataset.c === ctab));
   const cur = clean ? ctab : tab;
+  ymTrackView((clean ? 'clean/' : 'kitchen/') + cur);
   $('#btnLog').hidden = clean;
   $('#btnLog').classList.toggle('on', cur === 'log');
   $('#btnHelp').classList.toggle('on', cur === 'help');
@@ -2638,8 +2671,8 @@ function renderAuth(mode, opts) {
   const join = mode === 'join';
   document.body.classList.add('anon');
   $('#banner').hidden = true;
-  const email = h('input', { type: 'email', autocomplete: 'username', inputmode: 'email', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', placeholder: 'name@example.com' });
-  const pass = h('input', { type: 'password', autocomplete: join ? 'new-password' : 'current-password', placeholder: join ? 'Придумайте пароль (от 8 символов)' : 'Пароль' });
+  const email = h('input', { class: 'ym-disable-keys', type: 'email', autocomplete: 'username', inputmode: 'email', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', placeholder: 'name@example.com' });
+  const pass = h('input', { class: 'ym-disable-keys', type: 'password', autocomplete: join ? 'new-password' : 'current-password', placeholder: join ? 'Придумайте пароль (от 8 символов)' : 'Пароль' });
   const err = h('div', { class: 'warnline', role: 'alert', hidden: true });
   const show = h('button', { type: 'button', class: 'btn sm ghost', onclick: () => {
     pass.type = pass.type === 'password' ? 'text' : 'password';
