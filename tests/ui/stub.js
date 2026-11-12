@@ -15,7 +15,7 @@ function stubSource(seedState) {
   let srv = makeServer(SEED);
   try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { srv.t = saved.t; srv.settings = saved.settings; srv.log = saved.log; srv.purchases = saved.purchases; srv.version = saved.version; } } catch (e) {}
   const save = () => localStorage.setItem(KEY, JSON.stringify({ t: srv.t, settings: srv.settings, log: srv.log, purchases: srv.purchases, version: srv.version }));
-  window.__stub = { srv, reset() { localStorage.removeItem(KEY); localStorage.removeItem(SES); localStorage.removeItem('stub-admin'); localStorage.removeItem('stub-clean'); }, delay: 0 };
+  window.__stub = { srv, reset() { localStorage.removeItem(KEY); localStorage.removeItem(SES); localStorage.removeItem('stub-admin'); localStorage.removeItem('stub-clean'); localStorage.removeItem('stub-kids'); }, delay: 0 };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   window.supabase = { createClient() {
     return {
@@ -35,11 +35,12 @@ function stubSource(seedState) {
       },
       async rpc(name, args) {
         if (name === 'create_invite') return { data: 'newtoken456789', error: null };
-        if (name === 'clean_get') { const c = JSON.parse(localStorage.getItem('stub-clean') || 'null'); return { data: c ? { data: c.data, version: c.version } : { data: null, version: 0 }, error: null }; }
-        if (name === 'clean_save') {
-          const c = JSON.parse(localStorage.getItem('stub-clean') || '{"data":null,"version":0}');
+        const blob = { clean_get: 'stub-clean', clean_save: 'stub-clean', kids_get: 'stub-kids', kids_save: 'stub-kids' }[name];
+        if (blob && /_get$/.test(name)) { const c = JSON.parse(localStorage.getItem(blob) || 'null'); return { data: c ? { data: c.data, version: c.version } : { data: null, version: 0 }, error: null }; }
+        if (blob) {
+          const c = JSON.parse(localStorage.getItem(blob) || '{"data":null,"version":0}');
           if (args.expected_version !== c.version) return { data: null, error: { message: 'version_conflict' } };
-          localStorage.setItem('stub-clean', JSON.stringify({ data: args.new_data, version: c.version + 1 })); return { data: c.version + 1, error: null };
+          localStorage.setItem(blob, JSON.stringify({ data: args.new_data, version: c.version + 1 })); return { data: c.version + 1, error: null };
         }
         if (name === 'is_admin') return { data: localStorage.getItem('stub-admin') === '1', error: null };
         if (name === 'admin_create_family_invite') return { data: 'family' + String(args.family_name).length + 'token', error: null };
