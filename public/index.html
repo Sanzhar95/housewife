@@ -129,7 +129,7 @@ h3{font-size:18px;font-weight:800;letter-spacing:-.005em}
 .set-links .btn{min-height:48px;justify-content:center}
 .link-box{display:flex;flex-direction:column;gap:10px}
 .sync{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
-body.anon nav, body.anon .hbtn{display:none}
+body.anon nav, body.anon .hbtn, body.anon .mods, body.anon #banner, body.anon .cbanner, body.anon #sync{display:none!important}
 .icon-act{border:0;background:transparent;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:17px;flex:none}
 .icon-act:hover{background:var(--surface-2)}
 input[type=text],input[type=number],input[type=email],input[type=password],input[type=tel],select{width:100%;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:11px 14px;font-size:16px;min-height:48px}
@@ -3044,6 +3044,7 @@ function renderAuth(mode, opts) {
   opts = opts || {};
   const join = mode === 'join';
   document.body.classList.add('anon');
+  $('#brandLogo').textContent = '🥘'; $('#brandName').textContent = 'Домашний помощник';
   $('#banner').hidden = true;
   const email = h('input', { class: 'ym-disable-keys', type: 'email', autocomplete: 'username', inputmode: 'email', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', placeholder: 'name@example.com' });
   const pass = h('input', { class: 'ym-disable-keys', type: 'password', autocomplete: join ? 'new-password' : 'current-password', placeholder: join ? 'Придумайте пароль (от 8 символов)' : 'Пароль' });
