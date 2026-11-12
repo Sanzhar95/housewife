@@ -58,7 +58,7 @@ for (const width of [390, 360, 320]) {
     const browser = await playwright.chromium.launch();
     const { ctx, page, errors } = await open(browser, base, width);
     try {
-      assert.ok(await page.isHidden('#kbanner'), 'до настройки баннера нет');
+      assert.strictEqual(await page.locator('#rKids').count(), 0, 'до настройки напоминания нет');
       const kitchenBefore = await page.evaluate(() => JSON.stringify(S.plan.map(i => i.id + i.done)));
       (await tapH(page, '.mods button')).forEach(h => assert.ok(h >= 42, 'переключатель ' + h + 'px'));
 
@@ -127,12 +127,12 @@ for (const width of [390, 360, 320]) {
       await page.click('.cbox:has-text("Кто отвозит") button:has-text("Добавить")');
       await page.waitForFunction(() => KS.people.join() === 'Я,Муж,Бабушка');
 
-      // кухня: вечером полоска «🎒 Собрать. Завтра: …»; меню кухни не тронуто
+      // кухня: вечером кнопка «🎒 Собрать на завтра: N»; меню кухни не тронуто
       await page.click('.mods button[data-m=kitchen]');
-      await page.waitForSelector('#kbanner:not([hidden])');
-      assert.match(await page.textContent('#kbanner'), /Собрать\. Завтра: 🏫 Школа \(Алия\), 🧸 Садик \(Тимур\)/);
+      await page.waitForSelector('#rKids');
+      assert.strictEqual((await page.textContent('#rKids')).trim(), '🎒 Собрать на завтра: 2');
       assert.strictEqual(await page.evaluate(() => JSON.stringify(S.plan.map(i => i.id + i.done))), kitchenBefore);
-      await page.click('#kbanner .btn');
+      await page.click('#rKids');
       await page.waitForSelector('#navKids:not([hidden])');
 
       // Метрика: цели и просмотры

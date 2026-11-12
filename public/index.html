@@ -93,10 +93,17 @@ nav{display:flex;gap:6px;padding-bottom:12px}
 .tab.on{background:var(--accent);color:var(--accent-ink)}
 .tab .ico{font-size:17px;line-height:1}
 
-#banner{background:var(--warn-soft);color:var(--warn);border-bottom:1px solid #f3dd9c}
-#banner .wrap{display:flex;gap:10px;align-items:center;padding-top:4px;padding-bottom:4px;cursor:pointer}
-#banner .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
-#banner .btn.sm{min-height:34px;padding:4px 14px;flex:none}
+/* одна строка напоминаний из всех разделов: короткие кнопки, при нехватке места — прокрутка вбок */
+#remind{background:var(--surface);border-bottom:1px solid var(--line)}
+#remind .rchips{display:flex;gap:8px;overflow-x:auto;padding-top:8px;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#remind .rchips::-webkit-scrollbar{display:none}
+.rchip{flex:none;max-width:78vw;border:0;border-radius:99px;min-height:42px;padding:6px 14px;font:inherit;font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rchip.buy{background:var(--warn-soft);color:var(--warn)}
+.rchip.clean{background:var(--mint-soft);color:var(--ok)}
+.rchip.kids{background:var(--accent-soft);color:var(--accent-deep)}
+.hbtn.dot{position:relative}
+.hbtn.dot::after{content:'';position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--bad);border:2px solid var(--surface)}
+.wk-sum{margin-top:2px}
 
 main{padding:22px 0 60px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -129,7 +136,7 @@ h3{font-size:18px;font-weight:800;letter-spacing:-.005em}
 .set-links .btn{min-height:48px;justify-content:center}
 .link-box{display:flex;flex-direction:column;gap:10px}
 .sync{font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap}
-body.anon nav, body.anon .hbtn, body.anon .mods, body.anon #banner, body.anon .cbanner, body.anon #sync{display:none!important}
+body.anon nav, body.anon .hbtn, body.anon .mods, body.anon #remind, body.anon #sync{display:none!important}
 .icon-act{border:0;background:transparent;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:17px;flex:none}
 .icon-act:hover{background:var(--surface-2)}
 input[type=text],input[type=number],input[type=email],input[type=password],input[type=tel],select{width:100%;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:11px 14px;font-size:16px;min-height:48px}
@@ -546,11 +553,6 @@ details.hs[open]>summary{color:var(--accent-deep)}
 .sup-bar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}
 .sup-bar i{display:block;height:100%;background:var(--ok)}
 .sup-bar.low i{background:var(--bad)}
-.cbanner{background:var(--mint-soft);color:var(--ok);border-bottom:1px solid var(--line);cursor:pointer}
-.cbanner .wrap{display:flex;align-items:center;gap:10px;min-height:44px;padding-top:4px;padding-bottom:4px}
-.cbanner .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
-.cbanner .btn.sm{min-height:34px}
-.kbanner{background:var(--accent-soft);color:var(--accent-deep)}
 input[type=date],input[type=time],textarea{width:100%;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:11px 14px;font:inherit;font-size:16px;min-height:48px;color:var(--ink)}
 input[type=date]:focus,input[type=time]:focus,textarea:focus{border-color:var(--accent);outline:none}
 textarea{resize:vertical;line-height:1.4}
@@ -578,7 +580,6 @@ textarea{resize:vertical;line-height:1.4}
     <div class="top-row">
       <div class="brand"><span class="logo" id="brandLogo">🥘</span> <span id="brandName">Домашняя кухня</span> <span class="sync" id="sync" hidden>сохраняется…</span></div>
       <button class="hbtn" id="btnHelp" aria-label="Помощь">❓<span class="lbl">Помощь</span></button>
-      <button class="hbtn" id="btnLog" aria-label="Журнал">📒<span class="lbl">Журнал</span></button>
       <button class="hbtn" id="btnNotify" aria-label="Настройки">⚙️<span class="lbl">Настройки</span></button>
     </div>
     <div class="mods" role="tablist" aria-label="Раздел">
@@ -606,9 +607,7 @@ textarea{resize:vertical;line-height:1.4}
     </nav>
   </div>
 </header>
-<div id="banner" hidden></div>
-<div id="cbanner" class="cbanner" hidden></div>
-<div id="kbanner" class="cbanner kbanner" hidden></div>
+<div id="remind" hidden><div class="wrap rchips" role="group" aria-label="Напоминания"></div></div>
 <main><div class="wrap" id="view"><div class="empty"><span class="big">🍳</span>Загружаю вашу кухню…</div></div></main>
 
 <dialog id="dlg"><div id="dlgBox"></div></dialog>
@@ -1077,31 +1076,31 @@ function exportShopping() {
 }
 
 /* ───── шапка и баннер ───── */
-function renderBanner() {
-  const b = $('#banner');
-  const low = S.products.filter(isLow);
-  if (!low.length || mod !== 'kitchen') { b.hidden = true; return; }
-  const go = () => { tab = 'stock'; stockFilter = 'low'; render(); window.scrollTo(0, 0); };
-  const txt = h('span', { class: 'txt' });
-  b.replaceChildren(h('div', { class: 'wrap', onclick: go },
-    txt, h('button', { class: 'btn sm', onclick: e => { e.stopPropagation(); go(); } }, 'Смотреть')));
-  b.hidden = false;
-  // одна строка: берём столько названий, сколько помещается целиком; остальное — «и ещё N»
-  const line = k => {
-    const names = low.slice(0, k).map(p => `${emo(p.name)} ${displayName(p.name)}`).join(', ');
-    return k ? [h('b', { text: '🛒 Пора докупить: ' }), names + (low.length > k ? ` и ещё ${low.length - k}` : '')] : [h('b', { text: `🛒 Пора докупить: ${low.length}` })];
-  };
-  for (let k = Math.min(low.length, 4); k >= 0; k--) {
-    txt.replaceChildren(...line(k));
-    if (txt.scrollWidth <= txt.clientWidth + 1) break;
+/**
+ * Одна строка напоминаний под переключателем разделов (вместо трёх полосок):
+ * 🛒 продукты на исходе · 🧽 несделанная уборка на сегодня · 🎒 что собрать детям / ближайшее событие.
+ * Напоминание своего раздела не дублируется (в «Уборке» нет 🧽, в «Детях» нет 🎒). Нажатие ведёт в нужное место.
+ */
+function renderReminders() {
+  const box = $('#remind'), row = box.querySelector('.rchips');
+  const chips = [];
+  const low = S ? S.products.filter(isLow) : [];
+  if (low.length) chips.push(h('button', { type: 'button', id: 'rBuy', class: 'rchip buy', onclick: () => { setMod('kitchen'); tab = 'stock'; stockFilter = 'low'; render(); window.scrollTo(0, 0); } },
+    '🛒 Купить: ' + low.length));
+  const left = CS && CS.ready && CS.settings.remind && mod !== 'clean' ? cTodayLeft(CS) : [];
+  if (left.length) chips.push(h('button', { type: 'button', id: 'rClean', class: 'rchip clean', onclick: () => { setMod('clean'); ctab = 'week'; cDay = null; render(); window.scrollTo(0, 0); } },
+    '🧽 Уборка: ' + left.length + ' · ' + left.reduce((a, t) => a + t.min, 0) + ' мин'));
+  const B = KS && KS.ready && mod !== 'kids' ? KS.banner : null;
+  if (B) {
+    const txt = B.items.length ? '🎒 Собрать ' + (B.evening ? 'на завтра' : 'сегодня') + ': ' + B.items.length
+      : B.remind[0].emo + ' ' + B.remind[0].name + ' · ' + kIn(B.remind[0].in);
+    chips.push(h('button', { type: 'button', id: 'rKids', class: 'rchip kids', onclick: () => {
+      setMod('kids'); ktab = B.items.length ? 'today' : 'events'; kWhen = B.evening ? 'tomorrow' : 'today'; render(); window.scrollTo(0, 0);
+    } }, txt));
   }
+  row.replaceChildren(...chips);
+  box.hidden = !chips.length;
 }
-let bannerT = 0;
-['resize', 'orientationchange'].forEach(ev => window.addEventListener(ev, () => {
-  clearTimeout(bannerT);
-  bannerT = setTimeout(() => { if (S && !$('#banner').hidden) renderBanner(); }, 200);
-}));
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && !$('#banner').hidden) renderBanner(); });
 
 $('#btnNotify').addEventListener('click', () => {
   if (!S) return;
@@ -1116,6 +1115,7 @@ $('#btnNotify').addEventListener('click', () => {
       h('div', { class: 'set-links' },
         owner ? h('button', { class: 'btn wide', onclick: inviteBox }, '👨‍👩‍👧 Пригласить в семью') : null,
         isAdmin ? h('button', { class: 'btn wide', onclick: friendBox }, '🎁 Новая семья для друга') : null,
+        h('button', { class: 'btn wide', onclick: () => { $('#dlg').close(); setMod('kitchen'); tab = 'log'; render(); window.scrollTo(0, 0); } }, '📒 Журнал действий'),
         h('button', { class: 'btn wide', onclick: passwordBox }, '🔑 Сменить пароль'),
         h('button', { class: 'btn wide', onclick: downloadBackup }, '💾 Скачать копию'),
         h('button', { class: 'btn wide danger', onclick: logout }, '🚪 Выйти'))),
@@ -1205,8 +1205,8 @@ async function downloadBackup() {
     });
   } catch (e) { toast(cleanErr(e), 'bad'); }
 }
-$('#btnLog').addEventListener('click', () => { tab = 'log'; if (S) render(); });
-$('#btnHelp').addEventListener('click', () => { if (mod === 'clean') ctab = 'help'; else if (mod === 'kids') ktab = 'help'; else tab = 'help'; if (S) { render(); window.scrollTo(0, 0); } });
+$('#btnHelp').addEventListener('click', () => {
+  try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* ничего */ } if (mod === 'clean') ctab = 'help'; else if (mod === 'kids') ktab = 'help'; else tab = 'help'; if (S) { render(); window.scrollTo(0, 0); } });
 
 /* ───── Меню на неделю: дни × завтрак / обед / ужин ───── */
 function parseDate(s) {
@@ -1618,6 +1618,18 @@ function mealCard(day, meal) {
       h('button', { class: 'btn ghost sm', onclick: () => pickDish(day, meal, 'extra') }, '＋ Салат / доп.')));
 }
 
+/** Одна строка вместо трёх плиток: «готово 1 из 5 · можно приготовить 3 из 4». */
+function weekSummary() {
+  const mains = S.dishes.filter(d => d.type === 'main');
+  if (!mains.length) return null;
+  const plan = S.plan || [];
+  const can = mains.filter(d => status(d.id).ok && !status(d.id).empty).length;
+  const parts = [];
+  if (plan.some(i => i.dish)) parts.push('✅ готово ' + plan.filter(i => i.done).length + ' из ' + plan.filter(i => i.dish).length);
+  parts.push('👩‍🍳 можно приготовить ' + can + ' из ' + mains.length);
+  return h('div', { class: 'muted small wk-sum', text: parts.join(' · ') });
+}
+
 function renderWeek(v) {
   const ws = S.settings.weekStart ? parseDate(S.settings.weekStart) : mondayDate();
   const ti = todayIdx();
@@ -1625,12 +1637,10 @@ function renderWeek(v) {
   v.append(h('div', { class: 'toolbar' },
     h('div', { class: 'grow' },
       h('h2', { text: 'Меню на неделю' }),
-      h('div', { class: 'muted', text: `${ws.getDate()} ${MONTHS[ws.getMonth()]} – ${addDays(ws, 6).getDate()} ${MONTHS[addDays(ws, 6).getMonth()]}` })),
-    h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: onlyAvail, onchange: e => { onlyAvail = e.target.checked; } }), 'Только из того, что есть'),
+      h('div', { class: 'muted', text: `${ws.getDate()} ${MONTHS[ws.getMonth()]} – ${addDays(ws, 6).getDate()} ${MONTHS[addDays(ws, 6).getMonth()]}` }),
+      weekSummary()),
     h('button', { class: 'btn primary gen-btn', onclick: genDialog }, '🎲 Составить меню')));
 
-  const news = newsCard();
-  if (news) v.append(news);
   if (!S.dishes.some(d => d.type === 'main')) {
     v.append(h('div', { class: 'empty' }, h('span', { class: 'big', text: '🍲' }), 'Добавьте основные блюда на вкладке «Блюда» — из них будет собрано меню.'));
     return;
@@ -1641,11 +1651,6 @@ function renderWeek(v) {
   }
 
   const plan = S.plan || [];
-  const can = S.dishes.filter(d => d.type === 'main' && status(d.id).ok && !status(d.id).empty).length;
-  v.append(h('div', { class: 'stats' },
-    h('div', { class: 'stat' }, h('div', { class: 'si a', text: '👩‍🍳' }), h('div', {}, h('b', { text: `${can} из ${S.dishes.filter(d => d.type === 'main').length}` }), h('span', { class: 'l', text: 'основных блюд можно приготовить' }))),
-    h('div', { class: 'stat' }, h('div', { class: 'si b', text: '🛒' }), h('div', {}, h('b', { text: S.products.filter(isLow).length }), h('span', { class: 'l', text: 'продуктов на исходе' }))),
-    h('div', { class: 'stat' }, h('div', { class: 'si c', text: '✅' }), h('div', {}, h('b', { text: `${plan.filter(i => i.done).length} из ${plan.filter(i => i.dish).length}` }), h('span', { class: 'l', text: 'блюд приготовлено' })))));
 
   // полоска дней
   v.append(h('div', { class: 'daystrip' }, [1, 2, 3, 4, 5, 6, 7].map(day => {
@@ -2314,15 +2319,6 @@ function renderHelp(v) {
 /* Подсказка про новинки: один раз, пока не закроют */
 const NEWS_KEY = 'dk_news_portions_v1';
 function newsSeen() { try { return !!localStorage.getItem(NEWS_KEY); } catch (e) { return false; } }
-function newsCard() {
-  if (newsSeen()) return null;
-  const close = () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* без хранилища просто покажем снова */ } render(); };
-  return h('div', { class: 'news' }, h('span', { class: 'em', text: '✨' }),
-    h('div', { class: 'tx' }, 'Новое: «хватает на N раз»', h('small', { text: 'Суп или плов сами встанут в меню на следующие дни.' })),
-    h('button', { class: 'btn sm', onclick: () => { try { localStorage.setItem(NEWS_KEY, '1'); } catch (e) { /* ничего */ } tab = 'help'; render(); window.scrollTo(0, 0); } }, 'Как это работает'),
-    h('button', { class: 'icon-act', 'aria-label': 'Скрыть', onclick: close }, '×'));
-}
-
 /* ───── Модуль «Уборка» ───── */
 let mod = 'kitchen';
 try { const m = localStorage.getItem('dk_mod'); if (m === 'clean' || m === 'kids') mod = m; } catch (e) { /* без хранилища — начнём с кухни */ }
@@ -2402,19 +2398,6 @@ function renderClean(v) {
   }
   if (!C.ready) return cPicksEditor(v, C, true);
   ({ week: cWeek, general: cGeneral, supplies: cSupplies, picks: (x, c) => cPicksEditor(x, c, false) })[ctab](v, C);
-}
-
-/** Напоминание на кухне: «🧽 Уборка: N зад. · M мин», если на сегодня есть несделанное. */
-function renderCBanner() {
-  const b = $('#cbanner');
-  const C = CS;
-  const left = C && C.ready && C.settings.remind && mod === 'kitchen' ? cTodayLeft(C) : [];
-  if (!left.length) { b.hidden = true; return; }
-  const go = () => { setMod('clean'); ctab = 'week'; cDay = null; render(); };
-  b.replaceChildren(h('div', { class: 'wrap', onclick: go },
-    h('span', { class: 'txt' }, h('b', { text: '🧽 Уборка: ' }), left.length + ' зад. · ' + left.reduce((a, t) => a + t.min, 0) + ' мин'),
-    h('button', { class: 'btn sm', onclick: e => { e.stopPropagation(); go(); } }, 'Смотреть')));
-  b.hidden = false;
 }
 
 function taskCard(t, C) {
@@ -2725,21 +2708,6 @@ function renderKids(v) {
   ({ today: kToday, week: kWeek, events: kEvents, kids: kKids })[ktab](v, K);
 }
 
-/** Полоска-напоминание вверху (в «Кухне» и «Уборке»): вечером — что собрать на завтра, днём — на сегодня. */
-function renderKBanner() {
-  const b = $('#kbanner');
-  const B = KS && KS.ready && mod !== 'kids' ? KS.banner : null;
-  if (!B) { b.hidden = true; return; }
-  const go = () => { setMod('kids'); ktab = 'today'; kWhen = B.evening ? 'tomorrow' : 'today'; render(); };
-  const what = B.items.length
-    ? (B.evening ? 'Завтра: ' : 'Сегодня: ') + B.items.map(i => i.emo + ' ' + i.name + (i.kidName ? ' (' + i.kidName + ')' : '')).join(', ')
-    : B.remind.map(e => e.emo + ' ' + e.name + ' — ' + kIn(e.in)).join(', ');
-  b.replaceChildren(h('div', { class: 'wrap', onclick: go },
-    h('span', { class: 'txt' }, h('b', { text: B.items.length ? '🎒 Собрать. ' : '🎒 Скоро. ' }), what),
-    h('button', { class: 'btn sm', onclick: e => { e.stopPropagation(); go(); } }, 'Смотреть')));
-  b.hidden = false;
-}
-
 /** Карточка занятия или события на дату: время, место, кто отвозит, вещи, «✓ Собрано». */
 function kItemCard(it) {
   const meta = [it.time, it.place, it.driver ? 'отвозит ' + it.driver : ''].filter(Boolean).join(' · ');
@@ -2986,9 +2954,8 @@ function kKidSheet(k) {
 function render() {
   const clean = mod === 'clean', kids = mod === 'kids', kitchen = !clean && !kids;
   if (KST && KS) KS = KST.state() || KS;   // «сегодня», «вечер» и баннер считаются от текущего времени
-  renderBanner();
-  renderCBanner();
-  renderKBanner();
+  renderReminders();
+  $('#btnHelp').classList.toggle('dot', !newsSeen());
   $('#navKitchen').hidden = !kitchen;
   $('#navClean').hidden = !clean;
   $('#navKids').hidden = !kids;
@@ -3000,8 +2967,6 @@ function render() {
   document.querySelectorAll('#navKids .tab').forEach(b => b.classList.toggle('on', kids && b.dataset.k === ktab));
   const cur = clean ? ctab : kids ? ktab : tab;
   ymTrackView((clean ? 'clean/' : kids ? 'kids/' : 'kitchen/') + cur);
-  $('#btnLog').hidden = !kitchen;
-  $('#btnLog').classList.toggle('on', cur === 'log');
   $('#btnHelp').classList.toggle('on', cur === 'help');
   const v = $('#view');
   v.replaceChildren();
@@ -3045,7 +3010,7 @@ function renderAuth(mode, opts) {
   const join = mode === 'join';
   document.body.classList.add('anon');
   $('#brandLogo').textContent = '🥘'; $('#brandName').textContent = 'Домашний помощник';
-  $('#banner').hidden = true;
+  $('#remind').hidden = true;
   const email = h('input', { class: 'ym-disable-keys', type: 'email', autocomplete: 'username', inputmode: 'email', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', placeholder: 'name@example.com' });
   const pass = h('input', { class: 'ym-disable-keys', type: 'password', autocomplete: join ? 'new-password' : 'current-password', placeholder: join ? 'Придумайте пароль (от 8 символов)' : 'Пароль' });
   const err = h('div', { class: 'warnline', role: 'alert', hidden: true });

@@ -242,46 +242,44 @@ test('меню: геометрия шапки, плашки «Новое», сч
   };
   const box = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, w: r.width }; }, sel);
   try {
-    // 1) плашка «Новое» показана (чистое хранилище)
+    // 1) верх экрана разгружен: нет плашки «Новое», галочки и плиток; одна строка напоминаний; точка на «Помощи»
     const ctx = await newCtx(browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     await login(page);
-    const news = await box(page, '.news');
-    assert.ok(news, 'плашка «Новое» показана при чистом хранилище');
-    const tx = await box(page, '.news .tx');
-    assert.ok(tx.w >= news.w * 0.6, `текст плашки ${Math.round(tx.w)}px из ${Math.round(news.w)}px — меньше 60%`);
-    assert.ok(await page.isVisible('#banner'), 'в тестовых данных есть продукты на исходе — строка видна');
-    assert.ok(tx.h <= 3 * 19.5 + 1, `текст плашки «Новое» ${tx.h}px — больше 3 строк`);
-    const newsBtn = await box(page, '.news .btn');
-    assert.ok(newsBtn.h >= 42, `кнопка «Как это работает» ${newsBtn.h}px, нужно ≥ 42`);
-    const clip = await page.evaluate(() => { const e = document.querySelector('#banner .txt'); return [e.scrollWidth, e.clientWidth]; });
-    assert.ok(clip[0] <= clip[1], `текст «Пора докупить» обрезан: ${clip[0]} > ${clip[1]}`);
-    const banner = await box(page, '#banner');
-    assert.ok(banner && banner.h <= 44, `строка «Пора докупить» ${banner && banner.h}px, нужно ≤ 44`);
+    assert.strictEqual(await page.locator('.news').count(), 0, 'карточки «Новое» на экране нет');
+    assert.strictEqual(await page.locator('.toolbar .check').count(), 0, 'галочка переехала в окно «Составить меню»');
+    assert.strictEqual(await page.locator('.stats').count(), 0, 'плиток нет — одна строка');
+    assert.match(await page.textContent('.wk-sum'), /можно приготовить \d+ из \d+/);
+    assert.strictEqual(await page.locator('#btnLog').count(), 0, 'журнал — в настройках');
+    assert.ok(await page.isVisible('#rBuy'), 'в тестовых данных есть продукты на исходе — кнопка видна');
+    assert.match(await page.textContent('#rBuy'), /🛒 Купить: \d+/);
+    const rem = await box(page, '#remind');
+    assert.ok(rem.h <= 60, `строка напоминаний ${rem.h}px, нужно ≤ 60`);
+    const chip = await box(page, '#rBuy');
+    assert.ok(chip.h >= 42, `кнопка напоминания ${chip.h}px, нужно ≥ 42`);
     for (const t of ['stock', 'dishes']) {
       await page.click(`nav .tab[data-t=${t}]`);
-      const b = await box(page, '#banner');
-      assert.ok(b.h <= 44, `«Пора докупить» на вкладке ${t}: ${b.h}px`);
+      assert.ok((await box(page, '#remind')).h <= 60, 'строка на вкладке ' + t);
     }
     await page.click('nav .tab[data-t=week]');
-    const chk = await box(page, '.toolbar .check');
-    assert.ok(chk.h >= 42, `строка «Только из того, что есть» ${chk.h}px, нужно ≥ 42`);
-    const stats = await page.evaluate(() => [...document.querySelectorAll('.stats .stat')].map(e => e.getBoundingClientRect().height));
-    assert.strictEqual(stats.length, 3);
-    stats.forEach(h => assert.ok(h <= 110, `карточка-счётчик ${h}px, нужно ≤ 110`));
-    const dtNews = await box(page, '.day-title');
-    assert.ok(dtNews.bottom <= 750, `«Сегодня» с плашкой «Новое» заканчивается на ${dtNews.bottom}px, нужно ≤ 750`);
-    await ctx.close();
-
-    // 2) без плашки «Новое»: заголовок «Сегодня» целиком на первом экране
-    const ctx2 = await newCtx(browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
-    const p2 = await ctx2.newPage();
-    await p2.addInitScript(() => { try { localStorage.setItem('dk_news_portions_v1', '1'); } catch (e) { /* нет хранилища */ } });
-    await login(p2);
-    assert.strictEqual(await p2.locator('.news').count(), 0);
-    const dt = await box(p2, '.day-title');
+    const dt = await box(page, '.day-title');
     assert.ok(dt.bottom < 844 - NAV, `«Сегодня» заканчивается на ${dt.bottom}px, нужно < ${844 - NAV}`);
-    await ctx2.close();
+    // «Новое» — точкой на ❓; после открытия помощи точка пропадает
+    assert.ok(await page.evaluate(() => document.querySelector('#btnHelp').classList.contains('dot')));
+    await page.click('#btnHelp');
+    await page.click('nav .tab[data-t=week]');
+    assert.ok(!(await page.evaluate(() => document.querySelector('#btnHelp').classList.contains('dot'))));
+    // «Только из того, что есть» — в окне «Составить меню»; журнал — в настройках
+    await page.click('.gen-btn');
+    assert.match(await page.textContent('#dlg'), /Только из того, что есть/);
+    await page.keyboard.press('Escape');
+    await page.click('#btnNotify');
+    await page.click('#dlg button:has-text("Журнал")');
+    await page.waitForSelector('h2:has-text("Журнал")');
+    // кнопка «Купить» ведёт на склад с фильтром «Пора докупить»
+    await page.click('#rBuy');
+    await page.waitForFunction(() => tab === 'stock' && stockFilter === 'low');
+    await ctx.close();
   } finally { await browser.close(); server.close(); }
 });
 

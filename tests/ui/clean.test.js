@@ -56,7 +56,7 @@ for (const width of [390, 360, 320]) {
     try {
       // кухня как раньше: четыре вкладки, баннера уборки нет, пока график не составлен
       assert.strictEqual(await page.locator('#navKitchen .tab').count(), 4);
-      assert.ok(await page.isHidden('#cbanner'));
+      assert.strictEqual(await page.locator('#rClean').count(), 0);
       const kitchenBefore = await page.evaluate(() => JSON.stringify(S.plan.map(i => i.id + i.done)));
 
       // переключатель
@@ -144,8 +144,8 @@ for (const width of [390, 360, 320]) {
 
       // баннер на кухне: если на сегодня есть несделанное
       await page.click('.mods button[data-m=kitchen]');
-      await page.waitForSelector('#cbanner:not([hidden])');
-      assert.match(await page.textContent('#cbanner'), /🧽 Уборка: \d+ зад\. · \d+ мин/);
+      await page.waitForSelector('#rClean');
+      assert.match(await page.textContent('#rClean'), /🧽 Уборка: \d+ · \d+ мин/);
       assert.strictEqual(await page.evaluate(() => JSON.stringify(S.plan.map(i => i.id + i.done))), kitchenBefore, 'меню кухни не изменилось');
 
       // перезагрузка: данные на месте, открывается на «Уборке»
